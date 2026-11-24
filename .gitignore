@@ -1,0 +1,29 @@
+# ---------------------------------------------------------------
+#  NEVER commit your personal SMBIOS data (serial, MLB, ROM, UUID).
+#  Only config.sample.plist (with placeholders) belongs in the repo.
+# ---------------------------------------------------------------
+EFI/OC/config.plist
+*.plist.bak
+*-personal.plist
+
+# Third-party binaries are NOT redistributed here (own licenses).
+# Download them with the links in docs/KEXTS.md.
+EFI/BOOT/*.efi
+EFI/OC/*.efi
+EFI/OC/Drivers/*.efi
+EFI/OC/Kexts/*.kext/
+EFI/OC/Tools/*.efi
+EFI/OC/Resources/
+
+# Local downloads / build output
+downloads/
+build/
+*.zip
+*.dmg
+*.img
+
+# OS junk
+.DS_Store
+._*
+Thumbs.db
+desktop.ini
