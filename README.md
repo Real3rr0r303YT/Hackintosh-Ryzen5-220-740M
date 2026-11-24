@@ -44,22 +44,32 @@ Legend: ✅ works · 🟡 partly · ❌ doesn't work · 🔲 not tested
 - **macOS:** Tahoe 26 (required by nullarc)
 - **Bootloader:** OpenCore (latest release)
 
+## Build the EFI
+
+No ready-made EFI with third-party files is stored here. A script downloads the pinned versions from the official sources and generates the config:
+
+```powershell
+# real PC (generates your personal SMBIOS once, kept in smbios.local.json)
+powershell -ExecutionPolicy Bypass -File scripts\Build-EFI.ps1 -Target Hardware -NewSmbios
+
+# VirtualBox test VM
+powershell -ExecutionPolicy Bypass -File scripts\Build-EFI.ps1 -Target VM
+```
+
+Result: `build\EFI` (or `build\EFI-VM`), checked with `ocvalidate`. Test in a VM first: [docs/VM-TEST.md](docs/VM-TEST.md)
+
 ## Repository layout
 
 ```
-EFI/
-  BOOT/              BOOTx64.efi          (not in repo, download)
-  OC/
-    ACPI/            SSDTs (.aml)
-    Drivers/         OpenRuntime.efi, HfsPlus.efi … (not in repo)
-    Kexts/           Lilu, VirtualSMC … (not in repo)
-    Tools/           OpenShell.efi … (not in repo)
-    config.sample.plist   config without personal data
+EFI/OC/config.sample.plist   generated config with placeholder serials (for reference)
+scripts/
+  components.json      pinned versions + download URLs
+  Fetch-EFI.ps1        downloads everything into build/
+  Build-EFI.ps1        generates config.plist (AMD patches, quirks, kexts) + ocvalidate
+  New-TestVM.ps1       VirtualBox test VM
 docs/
-  HARDWARE.md        full hardware info
-  KEXTS.md           which kexts/drivers, versions, download links
-  INSTALL.md         step-by-step installation
-  BIOS.md            BIOS settings
+  HARDWARE.md  KEXTS.md  BIOS.md  INSTALL.md  VM-TEST.md
+build/                 output (git-ignored)
 ```
 
 ## Important
