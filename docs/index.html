@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hackintosh Ryzen 5 220 · Radeon 740M · macOS Tahoe</title>
+<meta name="description" content="OpenCore EFI build scripts for the ASUS V500 (Ryzen 5 220, Radeon 740M) running macOS Tahoe 26.">
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --text: #16181d; --muted: #5d6470; --line: #e2e5ea;
+    --accent: #2f6fde; --accent-text: #ffffff;
+    --ok: #1f8a4c; --part: #b26a00; --exp: #7a4fd6; --no: #c33a3a; --todo: #6b7280;
+    --code: #eef1f5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1115; --card: #171a21; --text: #e8eaee; --muted: #9aa2ae; --line: #272b34;
+      --accent: #5b8ff0; --accent-text: #0b0d11;
+      --ok: #4cc27f; --part: #e3a447; --exp: #a98bf0; --no: #ee6f6f; --todo: #8b93a0;
+      --code: #1f232c;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 48px 20px 64px; }
+  header h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 8px; letter-spacing: -0.01em; }
+  header p.lead { color: var(--muted); margin: 0 0 24px; font-size: 1.05rem; }
+  .badge { display: inline-block; font-size: .78rem; font-weight: 600; padding: 3px 10px; border-radius: 999px;
+           border: 1px solid var(--line); color: var(--muted); margin: 0 6px 6px 0; }
+  .buttons { display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0 8px; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; font-weight: 600;
+         padding: 11px 18px; border-radius: 10px; border: 1px solid var(--line); color: var(--text); background: var(--card); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+  .btn:hover { filter: brightness(1.06); }
+  .note { font-size: .9rem; color: var(--muted); }
+  section { margin-top: 44px; }
+  h2 { font-size: 1.3rem; margin: 0 0 14px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; }
+  .warn { border-left: 4px solid var(--part); }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.s { white-space: nowrap; font-weight: 600; }
+  .ok { color: var(--ok); } .part { color: var(--part); } .exp { color: var(--exp); } .no { color: var(--no); } .todo { color: var(--todo); }
+  .legend span { margin-right: 14px; font-size: .88rem; }
+  code, pre { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: .88em; }
+  code { background: var(--code); padding: 1px 6px; border-radius: 5px; }
+  pre { background: var(--code); padding: 14px 16px; border-radius: 10px; overflow-x: auto; margin: 8px 0 0; }
+  pre code { background: none; padding: 0; }
+  ol.steps { padding-left: 1.2rem; margin: 0; }
+  ol.steps li { margin-bottom: 18px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+  .grid .card h3 { margin: 0 0 6px; font-size: 1rem; }
+  .grid .card p { margin: 0; color: var(--muted); font-size: .92rem; }
+  a { color: var(--accent); }
+  footer { margin-top: 56px; color: var(--muted); font-size: .85rem; border-top: 1px solid var(--line); padding-top: 18px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <span class="badge">OpenCore 1.0.8</span><span class="badge">macOS Tahoe 26.6</span><span class="badge">AMD Zen 4 · Hawk Point</span><span class="badge">Work in progress</span>
+  <h1>Hackintosh on the ASUS V500<br>Ryzen 5 220 · Radeon 740M</h1>
+  <p class="lead">Scripts that build a ready-to-boot OpenCore EFI for the ASUS V500 Mini Tower (VM501MH / PM500MH) and write a macOS Tahoe installer stick, straight from Windows.</p>
+  <div class="buttons">
+    <a class="btn primary" href="https://github.com/Real3rr0r303YT/Hackintosh-Ryzen5-220-740M/archive/refs/heads/main.zip">⬇ Download project (ZIP)</a>
+    <a class="btn" href="https://github.com/Real3rr0r303YT/Hackintosh-Ryzen5-220-740M">View on GitHub</a>
+    <a class="btn" href="https://github.com/Real3rr0r303YT/RadeArc">GPU driver fork (RadeArc)</a>
+  </div>
+  <p class="note">No pre-built EFI is offered: the scripts download every kext from its official source and generate your own serial numbers.</p>
+</header>
+
+<section>
+  <h2>What works</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Feature</th><th>Status</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>OpenCore boot + recovery entry</td><td class="s ok">✔ Works</td><td>Recovery on its own partition of the USB stick</td></tr>
+        <tr><td>AMD kernel patches (6 cores / 12 threads)</td><td class="s ok">✔ Works</td><td>Patch set incl. macOS 26.4+ variants</td></tr>
+        <tr><td>Kernel start (past <code>EXITBS:START</code>)</td><td class="s ok">✔ Works</td><td>MMIO whitelist + booter quirks for Phoenix / Hawk Point</td></tr>
+        <tr><td>CPU init, macOS userspace (launchd)</td><td class="s ok">✔ Works</td><td><code>SSDT-PLUG-ALT</code> for ACPI0007 cores</td></tr>
+        <tr><td>Picture over HDMI</td><td class="s ok">✔ Works</td><td>Firmware framebuffer, no acceleration</td></tr>
+        <tr><td>Wi-Fi (RTL8852BE)</td><td class="s part">◐ Partly</td><td>AirportRTW loads and scans; connecting not tested yet</td></tr>
+        <tr><td>Bluetooth</td><td class="s part">◐ Partly</td><td>BlueTool starts; firmware for <code>0489:E123</code> unconfirmed</td></tr>
+        <tr><td>Ethernet (RTL8111) · Audio (ALC897)</td><td class="s part">◐ Partly</td><td>Drivers load, not tested inside macOS yet</td></tr>
+        <tr><td>GPU acceleration (Radeon 740M)</td><td class="s exp">⚗ Experimental</td><td>RadeArc fork with PCI ID <code>1901</code> builds; test after install</td></tr>
+        <tr><td>macOS installation</td><td class="s todo">○ Next step</td><td>Recovery boots, install not done yet</td></tr>
+        <tr><td>USB mapping · Sleep / wake</td><td class="s todo">○ Not tested</td><td>After installation</td></tr>
+        <tr><td>VirtualBox test VM</td><td class="s no">✖ No</td><td>Hangs under Hyper-V "snail mode"; use the USB stick instead</td></tr>
+      </tbody>
+    </table>
+    <p class="legend" style="margin:14px 0 0">
+      <span class="ok">✔ works</span><span class="part">◐ partly</span><span class="exp">⚗ experimental</span><span class="todo">○ not tested</span><span class="no">✖ doesn't work</span>
+    </p>
+  </div>
+</section>
+
+<section>
+  <h2>Hardware</h2>
+  <div class="grid">
+    <div class="card"><h3>CPU</h3><p>AMD Ryzen 5 220 · Zen 4 Hawk Point · 6C / 12T</p></div>
+    <div class="card"><h3>GPU</h3><p>Radeon 740M <code>1002:1901</code> · Phoenix 2 silicon</p></div>
+    <div class="card"><h3>Board</h3><p>ASUS PM500MH · BIOS 306 · UEFI</p></div>
+    <div class="card"><h3>Network</h3><p>Realtek RTL8111 LAN · RTL8852BE Wi-Fi 6 + BT</p></div>
+    <div class="card"><h3>Audio</h3><p>Realtek ALC897 (AppleALC)</p></div>
+    <div class="card"><h3>Storage</h3><p>NVMe 512 GB · free M.2 slot for macOS</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>Quick start</h2>
+  <div class="card warn" style="margin-bottom:14px">
+    <strong>Before you start:</strong> back up your data and save your BitLocker recovery key
+    (<a href="https://aka.ms/myrecoverykey">aka.ms/myrecoverykey</a>). Changing Secure Boot can ask for it.
+  </div>
+  <div class="card">
+    <ol class="steps">
+      <li><strong>Download</strong> the project ZIP above and unpack it to <code>Documents\Hackintosh-Ryzen5-220-740M</code>.</li>
+      <li><strong>Build the EFI</strong> (downloads OpenCore + kexts, generates your serials):
+        <pre><code>powershell -ExecutionPolicy Bypass -File scripts\Build-EFI.ps1 -Target Hardware -NewSmbios -DebugOpenCore</code></pre></li>
+      <li><strong>Get macOS Tahoe recovery</strong> from Apple (needs Python):
+        <pre><code>cd build\tools\macrecovery
+python macrecovery.py -b Mac-CFF7D910A743CAAF -m 00000000000000000 -os latest -o ..\..\recovery\com.apple.recovery.boot download</code></pre></li>
+      <li><strong>Write the USB stick</strong> (admin PowerShell, erases the stick, USB disks only):
+        <pre><code>powershell -ExecutionPolicy Bypass -File scripts\New-UsbInstaller.ps1 -DiskNumber 1</code></pre></li>
+      <li><strong>BIOS</strong> (<kbd>Del</kbd>, then <kbd>F7</kbd>): Boot → Secure Boot → OS Type = <em>Other OS</em>, Fast Boot = <em>Disabled</em>. See <a href="https://github.com/Real3rr0r303YT/Hackintosh-Ryzen5-220-740M/blob/main/docs/BIOS.md">BIOS.md</a>.</li>
+      <li><strong>Boot</strong> the stick with <kbd>F8</kbd> → “UEFI: USB Flash Disk” → “RECOVERY (dmg)” starts automatically.</li>
+    </ol>
+  </div>
+</section>
+
+<section>
+  <h2>Documentation</h2>
+  <div class="grid">
+    <a class="card" style="text-decoration:none;color:inherit" href="https://github.com/Real3rr0r303YT/Hackintosh-Ryzen5-220-740M/blob/main/docs/POST-INSTALL.md"><h3>Post-install guide</h3><p>Install without touching Windows, EFI to disk, USB map, Wi-Fi, audio</p></a>
+    <a class="card" style="text-decoration:none;color:inherit" href="https://github.com/Real3rr0r303YT/Hackintosh-Ryzen5-220-740M/blob/main/docs/GPU.md"><h3>GPU (Radeon 740M)</h3><p>RadeArc fork, test order, escape hatches</p></a>
+    <a class="card" style="text-decoration:none;color:inherit" href="https://github.com/Real3rr0r303YT/Hackintosh-Ryzen5-220-740M/blob/main/docs/HARDWARE.md"><h3>Hardware IDs</h3><p>All PCI / USB IDs of this machine</p></a>
+    <a class="card" style="text-decoration:none;color:inherit" href="https://github.com/Real3rr0r303YT/Hackintosh-Ryzen5-220-740M/blob/main/docs/BIOS.md"><h3>BIOS settings</h3><p>What to change on the ASUS PM500MH</p></a>
+  </div>
+</section>
+
+<footer>
+  Built with OpenCore by <a href="https://github.com/acidanthera">Acidanthera</a> · AMD patches by <a href="https://github.com/AMD-OSX">AMD-OSX</a> ·
+  Phoenix fixes from <a href="https://github.com/kevin8717/TongFang-7840HS-Hackintosh">TongFang-7840HS-Hackintosh</a> ·
+  GPU work by <a href="https://github.com/luuumi-dev/nullarc">nullarc</a> / <a href="https://github.com/Kreytus/RadeArc">RadeArc</a> ·
+  Wi-Fi by <a href="https://github.com/souissiak1-maker/AirportRTW">AirportRTW</a>.<br>
+  Configuration and docs: GPL-3.0. macOS's license only allows installation on Apple hardware; this project is for education and research.
+</footer>
+
+</div>
+</body>
+</html>
