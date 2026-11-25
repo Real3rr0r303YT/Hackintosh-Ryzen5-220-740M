@@ -9,7 +9,8 @@
 [CmdletBinding()]
 param(
     [string]$Root,
-    [switch]$Force   # re-download even if the file is cached
+    [switch]$Force,        # re-download even if the file is cached
+    [switch]$DebugOpenCore # use the DEBUG build of OpenCore (verbose on-screen log)
 )
 
 $ErrorActionPreference = 'Stop'
@@ -45,6 +46,7 @@ function Find-Item([string]$base, [string]$pick) {
 }
 
 foreach ($c in $manifest.components) {
+    if ($DebugOpenCore -and $c.name -eq 'OpenCore') { $c.url = $c.url -replace '-RELEASE\.zip$', '-DEBUG.zip' }
     $file = Join-Path $dlDir ([IO.Path]::GetFileName(([Uri]$c.url).AbsolutePath))
     if ($Force -or -not (Test-Path $file)) {
         Write-Host "Downloading $($c.name) ..." -ForegroundColor Cyan

@@ -19,11 +19,13 @@
 #>
 [CmdletBinding()]
 param(
-    [ValidateSet('Hardware', 'VM')] [string]$Target = 'Hardware',
+    # Gpu = Hardware + RadeArc PhxBringup.kext (read-only "Test A", no -phxp2) -> build\EFI-GPU
+    [ValidateSet('Hardware', 'VM', 'Gpu')] [string]$Target = 'Hardware',
     [switch]$NewSmbios,      # generate smbios.local.json if it doesn't exist yet
     [switch]$SkipFetch,      # reuse build\EFI from a previous fetch
     [int]$Cores = 6,         # physical cores of the Ryzen 5 220
     [int]$AlcLayout = 11,    # AppleALC layout-id for ALC897 (try 12, 13, 21, 23, 66 … if no sound)
+    [switch]$DebugOpenCore,  # DEBUG OpenCore with on-screen log (always on for -Target VM)
     [string]$Root
 )
 
@@ -32,12 +34,19 @@ if (-not $Root) { $Root = Split-Path -Parent $PSScriptRoot }
 $tools = Join-Path $Root 'build\tools'
 
 # ---------------------------------------------------------------- 1. fetch
-if (-not $SkipFetch) { & (Join-Path $PSScriptRoot 'Fetch-EFI.ps1') -Root $Root }
+$useDebug = $DebugOpenCore -or $Target -eq 'VM'
+if (-not $SkipFetch) { & (Join-Path $PSScriptRoot 'Fetch-EFI.ps1') -Root $Root -DebugOpenCore:$useDebug }
 $fetched = Join-Path $Root 'build\EFI'
-$outEfi  = if ($Target -eq 'VM') { Join-Path $Root 'build\EFI-VM' } else { $fetched }
+$outEfi  = switch ($Target) { 'VM' { Join-Path $Root 'build\EFI-VM' } 'Gpu' { Join-Path $Root 'build\EFI-GPU' } default { $fetched } }
 if ($outEfi -ne $fetched) {
     if (Test-Path $outEfi) { Remove-Item $outEfi -Recurse -Force }
     Copy-Item $fetched $outEfi -Recurse
+}
+if ($Target -eq 'Gpu') {
+    # PhxBringup.kext built by GitHub Actions in the RadeArc fork (with PCI ID 1002:1901), see docs/GPU.md
+    $phx = Join-Path $Root 'build\gpu\kexts\PhxBringup.kext'
+    if (-not (Test-Path $phx)) { throw "Missing $phx - download the 'kexts' artifact from the RadeArc fork first (docs/GPU.md)." }
+    Copy-Item $phx (Join-Path $outEfi 'OC\Kexts') -Recurse -Force
 }
 
 # ---------------------------------------------------------------- plist helpers
@@ -112,7 +121,27 @@ $bq = [ordered]@{
     EnableWriteUnprotector = $false; ProvideCustomSlide = $true; RebuildAppleMemoryMap = $true
     SetupVirtualMap = $false; SyncRuntimePermissions = $true; ResizeAppleGpuBars = -1
 }
+if ($Target -eq 'VM') {
+    # VirtualBox ships an old EDK2 firmware: it needs the classic memory-map handling
+    $bq.SetupVirtualMap = $true; $bq.EnableWriteUnprotector = $true
+    $bq.RebuildAppleMemoryMap = $false; $bq.SyncRuntimePermissions = $false
+} else {
+    # Phoenix / Hawk Point (Ryzen 7040/8040/200) hangs at EXITBS:START with the plain
+    # Dortania Zen values. Taken from a working Ryzen 7 7840HS + macOS 26 config
+    # (github.com/kevin8717/TongFang-7840HS-Hackintosh).
+    $bq.DevirtualiseMmio = $true; $bq.SetupVirtualMap = $true; $bq.ProvideMaxSlide = 100
+}
 foreach ($k in $bq.Keys) { Set-Val "Booter/Quirks/$k" $bq[$k] }
+
+if ($Target -ne 'VM') {
+    # Standard AMD platform MMIO regions that must stay mapped for the firmware at runtime
+    $mmio = [ordered]@{
+        0xFE0B0000 = 'AMD ERAX MMIO'; 0xFED00000 = 'HPET MMIO'; 0xFED40000 = 'fTPM MMIO'
+        0xFED80000 = 'AMD FCH AcpiMmio / PMIO / SMI'; 0xFEDC0000 = 'AMD FCH UART / I2C / AOAC'
+        0xFEE00000 = 'LAPIC MMIO'; 0xFF000000 = 'SPI Flash ROM (NVRAM runtime)'
+    }
+    foreach ($a in $mmio.Keys) { Add-Item 'Booter/MmioWhitelist' ([ordered]@{ Address = [long]$a; Comment = $mmio[$a]; Enabled = $true }) }
+}
 
 # --- DeviceProperties
 Clear-Node 'DeviceProperties/Add'; Clear-Node 'DeviceProperties/Delete'
@@ -128,15 +157,21 @@ foreach ($k in $kexts) {
     $exeKey = $info.SelectSingleNode("/plist/dict/key[.='CFBundleExecutable']")
     $exe = if ($exeKey) { $n = $exeKey.NextSibling; while ($n.NodeType -ne 'Element') { $n = $n.NextSibling }; "Contents/MacOS/$($n.InnerText)" } else { '' }
     $enabled = -not ($Target -eq 'VM' -and $disabledOnVM -contains (KextName $k))
+    # Old (2021) power-management kexts: suspected to hang Zen 4 mobile on Tahoe right after
+    # CoreAnalyticsHub; the working 7840HS config doesn't use them either.
+    if ((KextName $k) -in 'AMDRyzenCPUPowerManagement', 'SMCAMDProcessor') { $enabled = $false }
     Add-Item 'Kernel/Add' ([ordered]@{
         Arch = 'Any'; BundlePath = $k.Name; Comment = (KextName $k); Enabled = $enabled
-        ExecutablePath = $exe; MaxKernel = ''; MinKernel = ''; PlistPath = 'Contents/Info.plist'
+        ExecutablePath = $exe; MaxKernel = ''; MinKernel = $(if ((KextName $k) -eq 'PhxBringup') { '25.0.0' } else { '' }); PlistPath = 'Contents/Info.plist'
     })
 }
 
 # --- Kernel/Patch  (AMD Vanilla, core count patched in)
 Clear-Node 'Kernel/Patch'
-[xml]$vanilla = Get-Content (Join-Path $tools 'patches.plist') -Raw
+# Hardware: patch set from the working Phoenix/Tahoe config (has 26.4+ variants); VM: plain AMD Vanilla
+$patchFile = if ($Target -ne 'VM' -and (Test-Path (Join-Path $tools 'config.plist'))) { 'config.plist' } else { 'patches.plist' }
+Write-Host "Kernel patches from: $patchFile" -ForegroundColor DarkGray
+[xml]$vanilla = Get-Content (Join-Path $tools $patchFile) -Raw
 $vp = $vanilla.SelectSingleNode("/plist/dict/key[.='Kernel']/following-sibling::dict[1]/key[.='Patch']/following-sibling::array[1]")
 $coreHits = 0
 foreach ($p in $vp.SelectNodes('dict')) {
@@ -163,7 +198,8 @@ $kq = [ordered]@{
 foreach ($k in $kq.Keys) { Set-Val "Kernel/Quirks/$k" $kq[$k] }
 
 # --- Misc
-Set-Val 'Misc/Boot/HideAuxiliary' $true
+# Recovery/installer entries count as "auxiliary" - keep them visible while installing
+Set-Val 'Misc/Boot/HideAuxiliary' $false
 Set-Val 'Misc/Boot/PickerMode' 'Builtin'
 Set-Val 'Misc/Boot/ShowPicker' $true
 Set-Val 'Misc/Boot/Timeout' 5
@@ -171,7 +207,7 @@ Set-Val 'Misc/Boot/PollAppleHotKeys' $true
 Set-Val 'Misc/Debug/AppleDebug' $true
 Set-Val 'Misc/Debug/ApplePanic' $true
 Set-Val 'Misc/Debug/DisableWatchDog' $true
-Set-Val 'Misc/Debug/Target' 3
+Set-Val 'Misc/Debug/Target' 67          # 0x43: log on screen + to opencore-*.txt on the EFI volume
 Set-Val 'Misc/Security/AllowSetDefault' $true
 Set-Val 'Misc/Security/BlacklistAppleUpdate' $true
 Set-Val 'Misc/Security/ExposeSensitiveData' 6
@@ -186,7 +222,10 @@ Add-Item 'Misc/Tools' ([ordered]@{
 
 # --- NVRAM
 $apple = '7C436110-AB2A-4BBB-A880-FE41995C9F82'
-$bootArgs = if ($Target -eq 'VM') { '-v keepsyms=1 debug=0x100' } else { "-v keepsyms=1 debug=0x100 alcid=$AlcLayout" }
+# ipc_control_port_options=0: from the working 7840HS config (avoids hangs/crashes on Tahoe)
+$bootArgs = if ($Target -eq 'VM') { '-v keepsyms=1 debug=0x100' } else { "-v keepsyms=1 debug=0x100 alcid=$AlcLayout ipc_control_port_options=0" }
+# phxdebug=1: RadeArc logging. Deliberately NO -phxp2 yet: without it PhxBringup only READS the GPU (Test A).
+if ($Target -eq 'Gpu') { $bootArgs += ' phxdebug=1' }
 Set-Val "NVRAM/Add/$apple/boot-args" $bootArgs
 Set-Val "NVRAM/Add/$apple/csr-active-config" (HexBytes '00000000')
 Set-Val "NVRAM/Add/$apple/prev-lang:kbd" (AsciiBytes 'de-DE:3')
@@ -198,9 +237,20 @@ foreach ($drv in 'OpenRuntime.efi', 'HfsPlus.efi', 'ResetNvramEntry.efi') {
     Add-Item 'UEFI/Drivers' ([ordered]@{ Arguments = ''; Comment = $drv; Enabled = $true; HideVerbose = $false; LoadEarly = $false; Path = $drv })
 }
 Set-Val 'UEFI/Quirks/ReleaseUsbOwnership' $true
+if ($useDebug) {
+    # show errors + warnings + info on screen (DEBUG build), so we see where it hangs
+    Set-Val 'Misc/Debug/DisplayLevel' 2147483714
+}
+if ($Target -eq 'VM') {
+    # VirtualBox firmware handles keys itself; OpenCore's own key handling swallows input there
+    Set-Val 'UEFI/Input/KeySupport' $false
+    # VBox otherwise picks 8K (7680x4320) - unreadable and slow
+    Set-Val 'UEFI/Output/Resolution' '1920x1080'
+}
 
 # --- PlatformInfo (placeholders first, for the repo sample)
-$model = 'MacPro7,1'
+# MacBookPro16,1 like the working 7840HS config; MacPro7,1 needs extra MCE workarounds on AMD
+$model = 'MacBookPro16,1'
 function Set-Smbios($s) {
     Set-Val 'PlatformInfo/Generic/SystemProductName' $model
     Set-Val 'PlatformInfo/Generic/SystemSerialNumber' $s.Serial
@@ -227,12 +277,18 @@ if ($Target -eq 'Hardware') {
 
 # ---------------------------------------------------------------- 3. SMBIOS (personal)
 $smbiosFile = Join-Path $Root 'smbios.local.json'
+if ((Test-Path $smbiosFile) -and ((Get-Content $smbiosFile -Raw | ConvertFrom-Json).Model -ne $model)) {
+    if ($NewSmbios) { Remove-Item -LiteralPath $smbiosFile; Write-Host "SMBIOS model changed to $model - generating new serials" -ForegroundColor Yellow }
+    else { Write-Warning "smbios.local.json is for another model - run with -NewSmbios to regenerate for $model." }
+}
 if (-not (Test-Path $smbiosFile) -and $NewSmbios) {
     $line = (& (Join-Path $tools 'macserial.exe') -m $model -g -n 1 | Select-Object -Last 1)
     $parts = $line.Split('|') | ForEach-Object { $_.Trim() }
     $mac = (Get-NetAdapter -Physical | Where-Object InterfaceDescription -like '*Realtek*GbE*' | Select-Object -First 1).MacAddress
     $rom = if ($mac) { $mac -replace '[-:]', '' } else { -join (1..6 | ForEach-Object { '{0:X2}' -f (Get-Random -Max 256) }) }
-    [ordered]@{ Serial = $parts[1]; MLB = $parts[2]; UUID = [guid]::NewGuid().ToString().ToUpper(); ROM = $rom } |
+    # macserial -g prints "SERIAL | MLB"
+    if ($parts.Count -lt 2 -or -not $parts[0] -or -not $parts[1]) { throw "Unexpected macserial output - SMBIOS not generated." }
+    [ordered]@{ Model = $model; Serial = $parts[0]; MLB = $parts[1]; UUID = [guid]::NewGuid().ToString().ToUpper(); ROM = $rom } |
         ConvertTo-Json | Set-Content $smbiosFile -Encoding UTF8
     Write-Host "Generated new SMBIOS -> smbios.local.json (keep it private, it's git-ignored)" -ForegroundColor Yellow
 }
@@ -245,6 +301,10 @@ if (Test-Path $smbiosFile) {
 
 $cfg = Join-Path $outEfi 'OC\config.plist'
 Save-Plist $cfg
+
+# Hide OpenCore's own \EFI\BOOT\BOOTx64.efi from the picker. Otherwise it shows up as
+# an entry (named after the volume) that only relaunches OpenCore and halts.
+Set-Content -Path (Join-Path $outEfi 'BOOT\.contentVisibility') -Value 'Disabled' -NoNewline -Encoding ASCII
 
 # ---------------------------------------------------------------- 4. validate
 Write-Host "`nocvalidate:" -ForegroundColor Cyan

@@ -27,6 +27,18 @@
       "items": [ { "pick": "SSDT-EC-USBX-DESKTOP.aml", "to": "OC/ACPI" } ]
     },
     {
+      "_comment": "CPU objects for firmwares that define cores as ACPI0007 devices (Phoenix/Hawk Point). From the working Ryzen 7840HS + macOS 26 EFI (MIT), pinned commit.",
+      "name": "SSDT-PLUG-ALT",
+      "url": "https://raw.githubusercontent.com/kevin8717/TongFang-7840HS-Hackintosh/6758dda39c6f3b29306cc7f97fe0e9969c4f69ab/EFI/OC/ACPI/SSDT-PLUG-ALT.aml",
+      "items": [ { "pick": "SSDT-PLUG-ALT.aml", "to": "OC/ACPI" } ]
+    },
+    {
+      "_comment": "Same repo: its Kernel/Patch set has the AMD patches split for macOS 26.4+ (used instead of AMD_Vanilla for the Hardware target).",
+      "name": "Phoenix-Patches",
+      "url": "https://raw.githubusercontent.com/kevin8717/TongFang-7840HS-Hackintosh/6758dda39c6f3b29306cc7f97fe0e9969c4f69ab/EFI/OC/config.plist",
+      "items": [ { "pick": "config.plist", "to": "tools" } ]
+    },
+    {
       "name": "AMD_Vanilla",
       "url": "https://raw.githubusercontent.com/AMD-OSX/AMD_Vanilla/master/patches.plist",
       "items": [ { "pick": "patches.plist", "to": "tools" } ]
