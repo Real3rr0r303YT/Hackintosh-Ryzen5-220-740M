@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>macOS Tahoe on the ASUS V500 · Ryzen 5 220 · Radeon 740M</title>
+<meta name="description" content="OpenCore EFI build scripts for the ASUS V500 (Ryzen 5 220, Radeon 740M) running macOS Tahoe 26.">
+<meta name="color-scheme" content="dark">
+<!-- Design: Figma "Hackintosh V500 – Download Page" -->
+<style>
+  :root {
+    --bg: #0b0d12; --surface: #14171f; --line: #232734; --code: #0e1016;
+    --text: #eef0f4; --muted: #9aa3b2;
+    --accent: #5b8cff; --accent2: #9b6bff;
+    --ok: #3dd68c; --part: #f5b544; --exp: #b18cff; --todo: #8a93a3; --no: #ff6b6b;
+    --grad: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; text-decoration: none; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 0 20px; }
+  code, pre { font-family: "JetBrains Mono", ui-monospace, "Cascadia Code", Consolas, monospace; }
+
+  /* nav */
+  nav { border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5;
+        background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(10px); }
+  nav .wrap { display: flex; align-items: center; gap: 28px; padding-top: 18px; padding-bottom: 18px; }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; }
+  .logo i { width: 14px; height: 14px; border-radius: 50%; background: var(--grad); display: inline-block; }
+  nav .links { margin-left: auto; display: flex; gap: 28px; align-items: center; }
+  nav .links a.l { color: var(--muted); font-weight: 500; font-size: 14px; }
+  nav .links a.l:hover { color: var(--text); }
+
+  /* buttons */
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 13px 22px; border-radius: 12px;
+         font-weight: 600; font-size: 15px; border: 1px solid var(--line); background: var(--surface); color: var(--text);
+         transition: transform .15s, filter .15s; }
+  .btn:hover { transform: translateY(-1px); filter: brightness(1.12); }
+  .btn.primary { background: var(--grad); border-color: transparent; color: #fff; }
+  .btn.small { padding: 9px 16px; font-size: 14px; }
+
+  /* hero */
+  .hero { background: linear-gradient(180deg, rgba(155,107,255,.16), rgba(11,13,18,0)); padding: 88px 0 72px; }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 22px; }
+  .badge { font-size: 12px; font-weight: 600; color: var(--muted); padding: 5px 12px; border-radius: 999px;
+           background: var(--surface); border: 1px solid var(--line); }
+  h1 { font-size: clamp(36px, 6vw, 60px); line-height: 1.05; letter-spacing: -0.03em; margin: 0 0 22px; font-weight: 700; }
+  h1 .g { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .lead { font-size: 19px; line-height: 1.5; color: var(--muted); max-width: 760px; margin: 0 0 22px; }
+  .buttons { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 22px; }
+  .hint { font-size: 13px; color: var(--muted); margin: 0; }
+
+  /* stats */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .stat { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+  .stat small { display: block; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .stat b { font-size: 16px; font-weight: 600; }
+
+  /* sections */
+  section { padding-top: 72px; }
+  .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin: 0 0 6px; }
+  h2 { font-size: 30px; line-height: 1.2; letter-spacing: -0.01em; margin: 0 0 20px; font-weight: 700; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
+
+  /* status table */
+  .row { display: grid; grid-template-columns: 300px 150px 1fr; gap: 16px; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--line); }
+  .row:last-child { border-bottom: 0; }
+  .row .f { font-weight: 500; }
+  .row .n { color: var(--muted); font-size: 14px; line-height: 1.4; }
+  .pill { justify-self: start; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+  .pill.ok   { color: var(--ok);   background: color-mix(in srgb, var(--ok) 14%, transparent); }
+  .pill.part { color: var(--part); background: color-mix(in srgb, var(--part) 14%, transparent); }
+  .pill.exp  { color: var(--exp);  background: color-mix(in srgb, var(--exp) 14%, transparent); }
+  .pill.todo { color: var(--todo); background: color-mix(in srgb, var(--todo) 14%, transparent); }
+  .pill.no   { color: var(--no);   background: color-mix(in srgb, var(--no) 14%, transparent); }
+
+  /* hardware / docs cards */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+  .grid.two { grid-template-columns: repeat(2, 1fr); }
+  .hw { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; }
+  .hw small { display: block; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; }
+  .hw span { font-weight: 500; line-height: 1.4; }
+  a.hw { transition: border-color .15s, transform .15s; }
+  a.hw:hover { border-color: var(--accent); transform: translateY(-1px); }
+
+  /* quick start */
+  .warn { border: 1px solid rgba(245,181,68,.35); background: rgba(245,181,68,.10); color: #f5c773;
+          border-radius: 14px; padding: 14px 18px; font-weight: 500; font-size: 14px; margin-bottom: 20px; }
+  .warn a { text-decoration: underline; }
+  .steps { padding: 28px; display: grid; gap: 26px; }
+  .step { display: grid; grid-template-columns: 36px 1fr; column-gap: 18px; row-gap: 10px; }
+  .num { width: 36px; height: 36px; border-radius: 50%; background: var(--grad); color: #fff; font-weight: 700;
+         display: grid; place-items: center; font-size: 15px; }
+  .step h3 { margin: 6px 0 4px; font-size: 17px; font-weight: 600; }
+  .step p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+  .step pre { grid-column: 2; margin: 0; background: var(--code); border: 1px solid var(--line); border-radius: 10px;
+              padding: 12px 16px; overflow-x: auto; color: #bfd1ff; font-size: 13px; line-height: 1.5; }
+  kbd { font-family: inherit; font-size: .9em; padding: 1px 6px; border-radius: 5px; border: 1px solid var(--line); background: var(--code); }
+
+  footer { margin-top: 72px; padding: 24px 0 56px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; line-height: 1.6; }
+  footer a { text-decoration: underline; text-decoration-color: var(--line); }
+
+  @media (max-width: 760px) {
+    nav .links a.l { display: none; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .row { grid-template-columns: 1fr auto; }
+    .row .n { grid-column: 1 / -1; }
+    .grid.two { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="logo" href="#"><i></i>V500 Hackintosh</a>
+    <div class="links">
+      <a class="l" href="#status">Status</a>
+      <a class="l" href="#hardware">Hardware</a>
+      <a class="l" href="#quick-start">Quick start</a>
+      <a class="l" href="#docs">Docs</a>
+      <a class="btn small" href="https://github.com/Real3rr0r303YT/Hackintosh-Ryzen5-220-740M">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="badges"><span class="badge">OpenCore 1.0.8</span><span class="badge">macOS Tahoe 26.6</span><span class="badge">AMD Zen 4 · Hawk Point</span><span class="badge">Work in progress</span></div>
+    <h1>macOS Tahoe on the ASUS V500.<br><span class="g">Ryzen 5 220 · Radeon 740M.</span></h1>
+    <p class="lead">Scripts that build a ready-to-boot OpenCore EFI and write a macOS installer stick — straight from Windows. Every kext comes from its official source; your serial numbers are generated locally.</p>
+    <div class="buttons">
+      <a class="btn primary" href="https://github.com/Real3rr0r303YT/Hackintosh-Ryzen5-220-740M/archive/refs/heads/main.zip">⬇&nbsp; Download project (ZIP)</a>
+      <a class="btn" href="https://github.com/Real3rr0r303YT/Hackintosh-Ryzen5-220-740M">View on GitHub</a>
+      <a class="btn" href="https://github.com/Real3rr0r303YT/RadeArc">GPU driver fork</a>
+    </div>
+    <p class="hint">No pre-built EFI: the scripts fetch OpenCore + kexts and generate your own SMBIOS.</p>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="stats">
+    <div class="stat"><small>Boots to</small><b>macOS userspace</b></div>
+    <div class="stat"><small>Kernel patches</small><b>6 cores · 26.4+</b></div>
+    <div class="stat"><small>Wi-Fi</small><b>RTL8852BE scanning</b></div>
+    <div class="stat"><small>GPU</small><b>740M · experimental</b></div>
+  </div>
+
+  <section id="status">
+    <p class="eyebrow">Status</p>
+    <h2>What works</h2>
+    <div class="card">
+      <div class="row"><span class="f">OpenCore boot + recovery entry</span><span class="pill ok">✔ Works</span><span class="n">Recovery on its own partition of the USB stick</span></div>
+      <div class="row"><span class="f">AMD kernel patches (6 cores / 12 threads)</span><span class="pill ok">✔ Works</span><span class="n">Patch set incl. macOS 26.4+ variants</span></div>
+      <div class="row"><span class="f">Kernel start (past <code>EXITBS:START</code>)</span><span class="pill ok">✔ Works</span><span class="n">MMIO whitelist + booter quirks for Phoenix / Hawk Point</span></div>
+      <div class="row"><span class="f">CPU init, macOS userspace</span><span class="pill ok">✔ Works</span><span class="n"><code>SSDT-PLUG-ALT</code> for ACPI0007 cores</span></div>
+      <div class="row"><span class="f">Picture over HDMI</span><span class="pill ok">✔ Works</span><span class="n">Firmware framebuffer, no acceleration</span></div>
+      <div class="row"><span class="f">Wi-Fi (RTL8852BE)</span><span class="pill part">◐ Partly</span><span class="n">AirportRTW loads and scans; connecting not tested yet</span></div>
+      <div class="row"><span class="f">Bluetooth</span><span class="pill part">◐ Partly</span><span class="n">BlueTool starts; firmware for <code>0489:E123</code> unconfirmed</span></div>
+      <div class="row"><span class="f">Ethernet · Audio</span><span class="pill part">◐ Partly</span><span class="n">Drivers load, not tested inside macOS yet</span></div>
+      <div class="row"><span class="f">GPU acceleration (Radeon 740M)</span><span class="pill exp">⚗ Experimental</span><span class="n">RadeArc fork with PCI ID <code>1901</code> builds; test after install</span></div>
+      <div class="row"><span class="f">macOS installation</span><span class="pill todo">○ Next step</span><span class="n">Recovery boots, install not done yet</span></div>
+      <div class="row"><span class="f">USB mapping · Sleep / wake</span><span class="pill todo">○ Not tested</span><span class="n">After installation</span></div>
+      <div class="row"><span class="f">VirtualBox test VM</span><span class="pill no">✖ No</span><span class="n">Hangs under Hyper-V; use the USB stick instead</span></div>
+    </div>
+  </section>
+
+  <section id="hardware">
+    <p class="eyebrow">Hardware</p>
+    <h2>Tested machine</h2>
+    <div class="grid">
+      <div class="hw"><small>CPU</small><span>AMD Ryzen 5 220 · Zen 4 Hawk Point · 6C / 12T</span></div>
+      <div class="hw"><small>GPU</small><span>Radeon 740M · 1002:1901 · Phoenix 2 silicon</span></div>
+      <div class="hw"><small>Board</small><span>ASUS PM500MH · BIOS 306 · UEFI</span></div>
+      <div class="hw"><small>Network</small><span>RTL8111 LAN · RTL8852BE Wi-Fi 6 + BT</span></div>
+      <div class="hw"><small>Audio</small><span>Realtek ALC897 · AppleALC</span></div>
+      <div class="hw"><small>Storage</small><span>NVMe 512 GB · free M.2 slot for macOS</span></div>
+    </div>
+  </section>
+
+  <section id="quick-start">
+    <p class="eyebrow">Quick start</p>
+    <h2>From Windows to the macOS installer</h2>
+    <div class="warn">Back up your data and save your BitLocker recovery key (<a href="https://aka.ms/myrecoverykey">aka.ms/myrecoverykey</a>) before changing Secure Boot.</div>
+    <div class="card steps">
+      <div class="step"><div class="num">1</div><div><h3>Download</h3><p>Get the project ZIP and unpack it to <code>Documents\Hackintosh-Ryzen5-220-740M</code>.</p></div></div>
+      <div class="step"><div class="num">2</div><div><h3>Build the EFI</h3><p>Downloads OpenCore + kexts and generates your serial numbers.</p></div>
+        <pre><code>powershell -ExecutionPolicy Bypass -File scripts\Build-EFI.ps1 -Target Hardware -NewSmbios -DebugOpenCore</code></pre></div>
+      <div class="step"><div class="num">3</div><div><h3>Get the macOS Tahoe recovery</h3><p>Straight from Apple with macrecovery (needs Python).</p></div>
+        <pre><code>cd build\tools\macrecovery
+python macrecovery.py -b Mac-CFF7D910A743CAAF -m 00000000000000000 -os latest -o ..\..\recovery\com.apple.recovery.boot download</code></pre></div>
+      <div class="step"><div class="num">4</div><div><h3>Write the USB stick</h3><p>Admin PowerShell. Erases the stick, only accepts USB disks.</p></div>
+        <pre><code>powershell -ExecutionPolicy Bypass -File scripts\New-UsbInstaller.ps1 -DiskNumber 1</code></pre></div>
+      <div class="step"><div class="num">5</div><div><h3>BIOS</h3><p><kbd>Del</kbd> → <kbd>F7</kbd> → Boot → Secure Boot → OS Type = <em>Other OS</em>, Fast Boot = <em>Disabled</em>.</p></div></div>
+      <div class="step"><div class="num">6</div><div><h3>Boot</h3><p><kbd>F8</kbd> → “UEFI: USB Flash Disk” → “RECOVERY (dmg)” starts automatically.</p></div></div>
+    </div>
+  </section>
+
+  <section id="docs">
+    <p class="eyebrow">Documentation</p>
+    <h2>Guides</h2>
+    <div class="grid two">
+      <a class="hw" href="https://github.com/Real3rr0r303YT/Hackintosh-Ryzen5-220-740M/blob/main/docs/POST-INSTALL.md"><small>Post-install →</small><span>Install without touching Windows, EFI to disk, USB map</span></a>
+      <a class="hw" href="https://github.com/Real3rr0r303YT/Hackintosh-Ryzen5-220-740M/blob/main/docs/GPU.md"><small>GPU →</small><span>RadeArc fork, test order, escape hatches</span></a>
+      <a class="hw" href="https://github.com/Real3rr0r303YT/Hackintosh-Ryzen5-220-740M/blob/main/docs/HARDWARE.md"><small>Hardware IDs →</small><span>All PCI / USB IDs of this machine</span></a>
+      <a class="hw" href="https://github.com/Real3rr0r303YT/Hackintosh-Ryzen5-220-740M/blob/main/docs/BIOS.md"><small>BIOS →</small><span>What to change on the ASUS PM500MH</span></a>
+    </div>
+  </section>
+
+  <footer>
+    OpenCore by <a href="https://github.com/acidanthera">Acidanthera</a> · AMD patches by <a href="https://github.com/AMD-OSX">AMD-OSX</a> ·
+    Phoenix fixes from <a href="https://github.com/kevin8717/TongFang-7840HS-Hackintosh">TongFang-7840HS-Hackintosh</a> ·
+    GPU work by <a href="https://github.com/luuumi-dev/nullarc">nullarc</a> / <a href="https://github.com/Kreytus/RadeArc">RadeArc</a> ·
+    Wi-Fi by <a href="https://github.com/souissiak1-maker/AirportRTW">AirportRTW</a><br>
+    Configuration and docs: GPL-3.0. macOS’s license only allows installation on Apple hardware; this project is for education and research.
+  </footer>
+</div>
+
+</body>
+</html>
