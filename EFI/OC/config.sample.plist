@@ -195,6 +195,24 @@
 					<key>Arch</key>
 					<string>Any</string>
 					<key>BundlePath</key>
+					<string>AMFIPass.kext</string>
+					<key>Comment</key>
+					<string>AMFIPass</string>
+					<key>Enabled</key>
+					<true />
+					<key>ExecutablePath</key>
+					<string>Contents/MacOS/AMFIPass</string>
+					<key>MaxKernel</key>
+					<string></string>
+					<key>MinKernel</key>
+					<string></string>
+					<key>PlistPath</key>
+					<string>Contents/Info.plist</string>
+				</dict>
+				<dict>
+					<key>Arch</key>
+					<string>Any</string>
+					<key>BundlePath</key>
 					<string>VirtualSMC.kext</string>
 					<key>Comment</key>
 					<string>VirtualSMC</string>
@@ -253,7 +271,7 @@
 					<key>Comment</key>
 					<string>AirportRTW</string>
 					<key>Enabled</key>
-					<true />
+					<false />
 					<key>ExecutablePath</key>
 					<string>Contents/MacOS/AirportRTW</string>
 					<key>MaxKernel</key>
@@ -289,7 +307,7 @@
 					<key>Comment</key>
 					<string>BlueToolFixup</string>
 					<key>Enabled</key>
-					<true />
+					<false />
 					<key>ExecutablePath</key>
 					<string>Contents/MacOS/BlueToolFixup</string>
 					<key>MaxKernel</key>
@@ -310,6 +328,42 @@
 					<true />
 					<key>ExecutablePath</key>
 					<string>Contents/MacOS/NVMeFix</string>
+					<key>MaxKernel</key>
+					<string></string>
+					<key>MinKernel</key>
+					<string></string>
+					<key>PlistPath</key>
+					<string>Contents/Info.plist</string>
+				</dict>
+				<dict>
+					<key>Arch</key>
+					<string>Any</string>
+					<key>BundlePath</key>
+					<string>PhxXhciKick.kext</string>
+					<key>Comment</key>
+					<string>PhxXhciKick</string>
+					<key>Enabled</key>
+					<true />
+					<key>ExecutablePath</key>
+					<string>Contents/MacOS/PhxXhciKick</string>
+					<key>MaxKernel</key>
+					<string></string>
+					<key>MinKernel</key>
+					<string></string>
+					<key>PlistPath</key>
+					<string>Contents/Info.plist</string>
+				</dict>
+				<dict>
+					<key>Arch</key>
+					<string>Any</string>
+					<key>BundlePath</key>
+					<string>RealtekBluetoothFirmware.kext</string>
+					<key>Comment</key>
+					<string>RealtekBluetoothFirmware</string>
+					<key>Enabled</key>
+					<false />
+					<key>ExecutablePath</key>
+					<string>Contents/MacOS/RealtekBluetoothFirmware</string>
 					<key>MaxKernel</key>
 					<string></string>
 					<key>MinKernel</key>
