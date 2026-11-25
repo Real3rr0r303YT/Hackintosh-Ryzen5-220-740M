@@ -3,6 +3,7 @@
 #  Only config.sample.plist (with placeholders) belongs in the repo.
 # ---------------------------------------------------------------
 EFI/OC/config.plist
+smbios.local.json
 *.plist.bak
 *-personal.plist
 

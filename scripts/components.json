@@ -1,0 +1,97 @@
+{
+  "_comment": "Pinned third-party components. Bump versions here, then run scripts/Build-EFI.ps1. 'pick' = file/folder names searched inside the download; 'to' = destination inside EFI (or 'tools' for build helpers).",
+  "components": [
+    {
+      "name": "OpenCore",
+      "url": "https://github.com/acidanthera/OpenCorePkg/releases/download/1.0.8/OpenCore-1.0.8-RELEASE.zip",
+      "items": [
+        { "pick": "X64/EFI/BOOT/BOOTx64.efi",               "to": "BOOT" },
+        { "pick": "X64/EFI/OC/OpenCore.efi",                "to": "OC" },
+        { "pick": "X64/EFI/OC/Drivers/OpenRuntime.efi",     "to": "OC/Drivers" },
+        { "pick": "X64/EFI/OC/Drivers/ResetNvramEntry.efi", "to": "OC/Drivers" },
+        { "pick": "X64/EFI/OC/Tools/OpenShell.efi",         "to": "OC/Tools" },
+        { "pick": "Docs/Sample.plist",                      "to": "tools" },
+        { "pick": "Utilities/ocvalidate/ocvalidate.exe",    "to": "tools" },
+        { "pick": "Utilities/macserial/macserial.exe",      "to": "tools" },
+        { "pick": "Utilities/macrecovery",                  "to": "tools" }
+      ]
+    },
+    {
+      "name": "HfsPlus",
+      "url": "https://raw.githubusercontent.com/acidanthera/OcBinaryData/master/Drivers/HfsPlus.efi",
+      "items": [ { "pick": "HfsPlus.efi", "to": "OC/Drivers" } ]
+    },
+    {
+      "name": "SSDT-EC-USBX",
+      "url": "https://raw.githubusercontent.com/dortania/Getting-Started-With-ACPI/master/extra-files/compiled/SSDT-EC-USBX-DESKTOP.aml",
+      "items": [ { "pick": "SSDT-EC-USBX-DESKTOP.aml", "to": "OC/ACPI" } ]
+    },
+    {
+      "_comment": "CPU objects for firmwares that define cores as ACPI0007 devices (Phoenix/Hawk Point). From the working Ryzen 7840HS + macOS 26 EFI (MIT), pinned commit.",
+      "name": "SSDT-PLUG-ALT",
+      "url": "https://raw.githubusercontent.com/kevin8717/TongFang-7840HS-Hackintosh/6758dda39c6f3b29306cc7f97fe0e9969c4f69ab/EFI/OC/ACPI/SSDT-PLUG-ALT.aml",
+      "items": [ { "pick": "SSDT-PLUG-ALT.aml", "to": "OC/ACPI" } ]
+    },
+    {
+      "_comment": "Same repo: its Kernel/Patch set has the AMD patches split for macOS 26.4+ (used instead of AMD_Vanilla for the Hardware target).",
+      "name": "Phoenix-Patches",
+      "url": "https://raw.githubusercontent.com/kevin8717/TongFang-7840HS-Hackintosh/6758dda39c6f3b29306cc7f97fe0e9969c4f69ab/EFI/OC/config.plist",
+      "items": [ { "pick": "config.plist", "to": "tools" } ]
+    },
+    {
+      "name": "AMD_Vanilla",
+      "url": "https://raw.githubusercontent.com/AMD-OSX/AMD_Vanilla/master/patches.plist",
+      "items": [ { "pick": "patches.plist", "to": "tools" } ]
+    },
+    {
+      "name": "Lilu",
+      "url": "https://github.com/acidanthera/Lilu/releases/download/1.7.2/Lilu-1.7.2-RELEASE.zip",
+      "items": [ { "pick": "Lilu.kext", "to": "OC/Kexts" } ]
+    },
+    {
+      "name": "VirtualSMC",
+      "url": "https://github.com/acidanthera/VirtualSMC/releases/download/1.3.8/VirtualSMC-1.3.8-RELEASE.zip",
+      "items": [ { "pick": "VirtualSMC.kext", "to": "OC/Kexts" } ]
+    },
+    {
+      "name": "AppleALC",
+      "url": "https://github.com/acidanthera/AppleALC/releases/download/1.9.8/AppleALC-1.9.8-RELEASE.zip",
+      "items": [ { "pick": "AppleALC.kext", "to": "OC/Kexts" } ]
+    },
+    {
+      "name": "NVMeFix",
+      "url": "https://github.com/acidanthera/NVMeFix/releases/download/1.1.3/NVMeFix-1.1.3-RELEASE.zip",
+      "items": [ { "pick": "NVMeFix.kext", "to": "OC/Kexts" } ]
+    },
+    {
+      "name": "RestrictEvents",
+      "url": "https://github.com/acidanthera/RestrictEvents/releases/download/1.1.6/RestrictEvents-1.1.6-RELEASE.zip",
+      "items": [ { "pick": "RestrictEvents.kext", "to": "OC/Kexts" } ]
+    },
+    {
+      "name": "BlueToolFixup",
+      "url": "https://github.com/acidanthera/BrcmPatchRAM/releases/download/2.7.2/BrcmPatchRAM-2.7.2-RELEASE.zip",
+      "items": [ { "pick": "BlueToolFixup.kext", "to": "OC/Kexts" } ]
+    },
+    {
+      "name": "RealtekRTL8111",
+      "url": "https://github.com/Mieze/RTL8111_driver_for_OS_X/releases/download/v3.0.0/RealtekRTL8111-V3.0.0.zip",
+      "items": [ { "pick": "RealtekRTL8111.kext", "to": "OC/Kexts" } ]
+    },
+    {
+      "name": "AMDRyzenCPUPowerManagement",
+      "url": "https://github.com/trulyspinach/SMCAMDProcessor/releases/download/0.7.2f1/AMDRyzenCPUPowerManagement.kext.zip",
+      "items": [ { "pick": "AMDRyzenCPUPowerManagement.kext", "to": "OC/Kexts" } ]
+    },
+    {
+      "name": "SMCAMDProcessor",
+      "url": "https://github.com/trulyspinach/SMCAMDProcessor/releases/download/0.7.2f1/SMCAMDProcessor.kext.zip",
+      "items": [ { "pick": "SMCAMDProcessor.kext", "to": "OC/Kexts" } ]
+    },
+    {
+      "name": "AirportRTW",
+      "url": "https://github.com/souissiak1-maker/AirportRTW/releases/download/V2.3.3/AirportRTW-Tahoe-Release.zip",
+      "items": [ { "pick": "*.kext", "to": "OC/Kexts" } ]
+    }
+  ]
+}
