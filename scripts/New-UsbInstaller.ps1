@@ -19,6 +19,7 @@
 param(
     [Parameter(Mandatory)] [int]$DiskNumber,
     [switch]$UpdateEfi,   # only replace EFI on partition 1 of an already prepared stick (keeps the recovery)
+    [string]$Source,      # EFI folder to write (default build\EFI), e.g. build\EFI-wifi-poll
     [string]$Root
 )
 
@@ -28,9 +29,10 @@ if (-not $Root) { $Root = Split-Path -Parent $PSScriptRoot }
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) { throw 'Please run this script in an ADMIN PowerShell.' }
 
-$efi      = Join-Path $Root 'build\EFI'
+$efi      = if ($Source) { if ([IO.Path]::IsPathRooted($Source)) { $Source } else { Join-Path $Root $Source } } else { Join-Path $Root 'build\EFI' }
+Write-Host "EFI source: $efi" -ForegroundColor DarkGray
 $recovery = Join-Path $Root 'build\recovery\com.apple.recovery.boot'
-if (-not (Test-Path "$efi\OC\config.plist")) { throw 'build\EFI missing - run Build-EFI.ps1 -Target Hardware first.' }
+if (-not (Test-Path "$efi\OC\config.plist")) { throw "$efi missing - run Build-EFI.ps1 first." }
 if (-not (Test-Path "$recovery\BaseSystem.dmg")) { throw 'Recovery missing - see docs/VM-TEST.md step 2 (macrecovery).' }
 
 $disk = Get-Disk -Number $DiskNumber
@@ -53,7 +55,9 @@ if ($UpdateEfi) {
         if (-not (Test-Path "$($l):\")) { throw 'EFI partition got no drive letter.' }
         $logs = Join-Path $Root 'build\usb-logs'; New-Item -ItemType Directory -Force $logs | Out-Null
         Get-ChildItem "$($l):\" -Filter 'opencore-*.txt' -ErrorAction SilentlyContinue | ForEach-Object { Copy-Item $_.FullName $logs -Force; "  saved log: build\usb-logs\$($_.Name)" }
-        Remove-Item "$($l):\EFI" -Recurse -Force
+        $before = if (Test-Path "$($l):\EFI\OC\OpenCore.efi") { 'OpenCore was present' } else { 'NO OpenCore found on the stick before the update' }
+        Write-Host "  $before" -ForegroundColor Yellow
+        if (Test-Path "$($l):\EFI") { Remove-Item "$($l):\EFI" -Recurse -Force }
         Copy-Item $efi "$($l):\EFI" -Recurse -Force
         Write-Host "EFI updated ($($l):): $((Get-ChildItem "$($l):\EFI" -Force).Name -join ', ')" -ForegroundColor Cyan
         Remove-PartitionAccessPath -DiskNumber $DiskNumber -PartitionNumber 1 -AccessPath "$($l):\" -ErrorAction SilentlyContinue

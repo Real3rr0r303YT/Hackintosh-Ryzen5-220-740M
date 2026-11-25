@@ -142,9 +142,9 @@
 
 <div class="wrap">
   <div class="stats">
-    <div class="stat"><small>Boots to</small><b>macOS userspace</b></div>
+    <div class="stat"><small>Boots to</small><b>Installer GUI</b></div>
     <div class="stat"><small>Kernel patches</small><b>6 cores · 26.4+</b></div>
-    <div class="stat"><small>Wi-Fi</small><b>RTL8852BE scanning</b></div>
+    <div class="stat"><small>Wi-Fi</small><b>Patch in testing</b></div>
     <div class="stat"><small>GPU</small><b>740M · experimental</b></div>
   </div>
 
@@ -157,11 +157,12 @@
       <div class="row"><span class="f">Kernel start (past <code>EXITBS:START</code>)</span><span class="pill ok">✔ Works</span><span class="n">MMIO whitelist + booter quirks for Phoenix / Hawk Point</span></div>
       <div class="row"><span class="f">CPU init, macOS userspace</span><span class="pill ok">✔ Works</span><span class="n"><code>SSDT-PLUG-ALT</code> for ACPI0007 cores</span></div>
       <div class="row"><span class="f">Picture over HDMI</span><span class="pill ok">✔ Works</span><span class="n">Firmware framebuffer, no acceleration</span></div>
-      <div class="row"><span class="f">Wi-Fi (RTL8852BE)</span><span class="pill part">◐ Partly</span><span class="n">AirportRTW loads and scans; connecting not tested yet</span></div>
-      <div class="row"><span class="f">Bluetooth</span><span class="pill part">◐ Partly</span><span class="n">BlueTool starts; firmware for <code>0489:E123</code> unconfirmed</span></div>
-      <div class="row"><span class="f">Ethernet · Audio</span><span class="pill part">◐ Partly</span><span class="n">Drivers load, not tested inside macOS yet</span></div>
+      <div class="row"><span class="f">Installer GUI · mouse + keyboard</span><span class="pill ok">✔ Works</span><span class="n">Language picker and reinstall menu; <code>PhxXhciKick</code> Zen 4 xHCI fix</span></div>
+      <div class="row"><span class="f">Wi-Fi (RTL8852BE)</span><span class="pill exp">⚗ Patch in testing</span><span class="n">Stock AirportRTW froze the installer (legacy INTx interrupt on AMD). Our <a href="https://github.com/Real3rr0r303YT/AirportRTW/tree/fix/zen4-msi-poll">AirportRTW fork</a> uses MSI or <code>-rtwpoll</code> polling</span></div>
+      <div class="row"><span class="f">Bluetooth</span><span class="pill exp">⚗ Ready to test</span><span class="n"><a href="https://github.com/Real3rr0r303YT/RealtekBluetoothFirmware">RealtekBluetoothFirmware</a> (has <code>0489:E123</code>) + BlueToolFixup; enabled after install</span></div>
+      <div class="row"><span class="f">Ethernet · Audio</span><span class="pill todo">○ Not tested</span><span class="n">Drivers load; LAN untested (no cable available)</span></div>
       <div class="row"><span class="f">GPU acceleration (Radeon 740M)</span><span class="pill exp">⚗ Experimental</span><span class="n">RadeArc fork with PCI ID <code>1901</code> builds; test after install</span></div>
-      <div class="row"><span class="f">macOS installation</span><span class="pill todo">○ Next step</span><span class="n">Recovery boots, install not done yet</span></div>
+      <div class="row"><span class="f">macOS installation</span><span class="pill todo">○ Next step</span><span class="n">Installer boots without Wi-Fi/BT (<code>-NoWireless</code>); iPhone USB tethering being tested, fallback: offline full installer</span></div>
       <div class="row"><span class="f">USB mapping · Sleep / wake</span><span class="pill todo">○ Not tested</span><span class="n">After installation</span></div>
       <div class="row"><span class="f">VirtualBox test VM</span><span class="pill no">✖ No</span><span class="n">Hangs under Hyper-V; use the USB stick instead</span></div>
     </div>
@@ -213,7 +214,7 @@ python macrecovery.py -b Mac-CFF7D910A743CAAF -m 00000000000000000 -os latest -o
     OpenCore by <a href="https://github.com/acidanthera">Acidanthera</a> · AMD patches by <a href="https://github.com/AMD-OSX">AMD-OSX</a> ·
     Phoenix fixes from <a href="https://github.com/kevin8717/TongFang-7840HS-Hackintosh">TongFang-7840HS-Hackintosh</a> ·
     GPU work by <a href="https://github.com/luuumi-dev/nullarc">nullarc</a> / <a href="https://github.com/Kreytus/RadeArc">RadeArc</a> ·
-    Wi-Fi by <a href="https://github.com/souissiak1-maker/AirportRTW">AirportRTW</a><br>
+    Wi-Fi by <a href="https://github.com/souissiak1-maker/AirportRTW">AirportRTW</a> · AMFIPass from <a href="https://github.com/dortania/OpenCore-Legacy-Patcher">OpenCore-Legacy-Patcher</a><br>
     Configuration and docs: GPL-3.0. macOS’s license only allows installation on Apple hardware; this project is for education and research.
   </footer>
 </div>

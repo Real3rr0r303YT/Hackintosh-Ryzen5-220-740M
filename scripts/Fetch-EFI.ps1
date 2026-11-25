@@ -69,6 +69,7 @@ foreach ($c in $manifest.components) {
         $found = @(Find-Item $src $it.pick)
         if ($found.Count -eq 0 -or -not $found[0]) { throw "$($c.name): '$($it.pick)' not found in download" }
         $dest = if ($it.to -eq 'tools') { $toolsDir } else { Join-Path $efiDir ($it.to -replace '/', '\') }
+        New-Item -ItemType Directory -Force $dest | Out-Null
         foreach ($f in $found) {
             Copy-Item $f.FullName $dest -Recurse -Force
             Write-Host "   + $($f.Name) -> $($it.to)" -ForegroundColor DarkGray

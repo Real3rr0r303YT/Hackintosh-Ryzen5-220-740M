@@ -26,6 +26,11 @@ param(
     [int]$Cores = 6,         # physical cores of the Ryzen 5 220
     [int]$AlcLayout = 11,    # AppleALC layout-id for ALC897 (try 12, 13, 21, 23, 66 … if no sound)
     [switch]$DebugOpenCore,  # DEBUG OpenCore with on-screen log (always on for -Target VM)
+    [switch]$NoWireless,     # disable AirportRTW + Bluetooth kexts (troubleshooting / install over LAN)
+    [switch]$NoBluetooth,    # disable only the Bluetooth kexts (WLAN stays on)
+    [string]$AirportRtwPath, # use this AirportRTW.kext (e.g. a local Debug build) instead of the pinned release
+    [string]$OutName,        # write to build\<OutName> instead of build\EFI (test variants side by side)
+    [string]$ExtraBootArgs,  # appended to boot-args (e.g. '-rtwpoll')
     [string]$Root
 )
 
@@ -38,6 +43,10 @@ $useDebug = $DebugOpenCore -or $Target -eq 'VM'
 if (-not $SkipFetch) { & (Join-Path $PSScriptRoot 'Fetch-EFI.ps1') -Root $Root -DebugOpenCore:$useDebug }
 $fetched = Join-Path $Root 'build\EFI'
 $outEfi  = switch ($Target) { 'VM' { Join-Path $Root 'build\EFI-VM' } 'Gpu' { Join-Path $Root 'build\EFI-GPU' } default { $fetched } }
+if ($OutName) {
+    if ($OutName -match '[\\/:]') { throw '-OutName is a folder name under build\, not a path.' }
+    $outEfi = Join-Path $Root "build\$OutName"
+}
 if ($outEfi -ne $fetched) {
     if (Test-Path $outEfi) { Remove-Item $outEfi -Recurse -Force }
     Copy-Item $fetched $outEfi -Recurse
@@ -47,6 +56,21 @@ if ($Target -eq 'Gpu') {
     $phx = Join-Path $Root 'build\gpu\kexts\PhxBringup.kext'
     if (-not (Test-Path $phx)) { throw "Missing $phx - download the 'kexts' artifact from the RadeArc fork first (docs/GPU.md)." }
     Copy-Item $phx (Join-Path $outEfi 'OC\Kexts') -Recurse -Force
+}
+if ($AirportRtwPath) {
+    if (-not (Test-Path (Join-Path $AirportRtwPath 'Contents\Info.plist'))) { throw "$AirportRtwPath is not a kext bundle." }
+    $rtwDest = Join-Path $outEfi 'OC\Kexts\AirportRTW.kext'
+    if (Test-Path $rtwDest) { Remove-Item $rtwDest -Recurse -Force }
+    Copy-Item $AirportRtwPath $rtwDest -Recurse
+    Write-Host "AirportRTW override: $AirportRtwPath" -ForegroundColor Yellow
+}
+# Realtek USB Bluetooth firmware uploader (0489:E123 = RTL8852B BT). Upstream (thegwchr) is gone;
+# built by GitHub Actions in the Real3rr0r303YT/RealtekBluetoothFirmware fork, see docs/KEXTS.md.
+$rtkBt = Join-Path $Root 'build\bt\RealtekBluetoothFirmware.kext'
+if ($Target -ne 'VM' -and (Test-Path $rtkBt)) {
+    $btDest = Join-Path $outEfi 'OC\Kexts\RealtekBluetoothFirmware.kext'
+    if (Test-Path $btDest) { Remove-Item $btDest -Recurse -Force }
+    Copy-Item $rtkBt $btDest -Recurse
 }
 
 # ---------------------------------------------------------------- plist helpers
@@ -147,8 +171,8 @@ if ($Target -ne 'VM') {
 Clear-Node 'DeviceProperties/Add'; Clear-Node 'DeviceProperties/Delete'
 
 # --- Kernel/Add  (Lilu first, then VirtualSMC, then plugins that depend on them)
-$disabledOnVM = 'AppleALC', 'NVMeFix', 'BlueToolFixup', 'RealtekRTL8111', 'AMDRyzenCPUPowerManagement', 'SMCAMDProcessor', 'AirportRTW'
-$order = 'Lilu', 'VirtualSMC', 'AMDRyzenCPUPowerManagement', 'SMCAMDProcessor'
+$disabledOnVM = 'AppleALC', 'NVMeFix', 'BlueToolFixup', 'RealtekBluetoothFirmware', 'RealtekRTL8111', 'AMDRyzenCPUPowerManagement', 'SMCAMDProcessor', 'AirportRTW', 'PhxXhciKick'
+$order = 'Lilu', 'AMFIPass', 'VirtualSMC', 'AMDRyzenCPUPowerManagement', 'SMCAMDProcessor'
 $kexts = Get-ChildItem (Join-Path $outEfi 'OC\Kexts') -Directory -Filter *.kext |
          Sort-Object @{ e = { $i = [array]::IndexOf($order, (KextName $_)); if ($i -lt 0) { 99 } else { $i } } }, Name
 Clear-Node 'Kernel/Add'; Clear-Node 'Kernel/Block'; Clear-Node 'Kernel/Force'
@@ -160,6 +184,8 @@ foreach ($k in $kexts) {
     # Old (2021) power-management kexts: suspected to hang Zen 4 mobile on Tahoe right after
     # CoreAnalyticsHub; the working 7840HS config doesn't use them either.
     if ((KextName $k) -in 'AMDRyzenCPUPowerManagement', 'SMCAMDProcessor') { $enabled = $false }
+    if ($NoWireless -and (KextName $k) -in 'AirportRTW', 'BlueToolFixup', 'RealtekBluetoothFirmware') { $enabled = $false }
+    if ($NoBluetooth -and (KextName $k) -in 'BlueToolFixup', 'RealtekBluetoothFirmware') { $enabled = $false }
     Add-Item 'Kernel/Add' ([ordered]@{
         Arch = 'Any'; BundlePath = $k.Name; Comment = (KextName $k); Enabled = $enabled
         ExecutablePath = $exe; MaxKernel = ''; MinKernel = $(if ((KextName $k) -eq 'PhxBringup') { '25.0.0' } else { '' }); PlistPath = 'Contents/Info.plist'
@@ -226,6 +252,21 @@ $apple = '7C436110-AB2A-4BBB-A880-FE41995C9F82'
 $bootArgs = if ($Target -eq 'VM') { '-v keepsyms=1 debug=0x100' } else { "-v keepsyms=1 debug=0x100 alcid=$AlcLayout ipc_control_port_options=0" }
 # phxdebug=1: RadeArc logging. Deliberately NO -phxp2 yet: without it PhxBringup only READS the GPU (Test A).
 if ($Target -eq 'Gpu') { $bootArgs += ' phxdebug=1' }
+# AirportRTW (Wi-Fi) on Tahoe: relax AMFI like the working 7840HS config, set the regulatory
+# country, and turn off the experimental AWDL frontend (added in V2.3.0) in the kext's Info.plist.
+if ($Target -ne 'VM' -and -not $NoWireless) {
+    $bootArgs += ' -amfipassbeta amfi=0x80 itlwm_cc=DE'
+    $rtwPlist = Join-Path $outEfi 'OC\Kexts\AirportRTW.kext\Contents\Info.plist'
+    if (Test-Path $rtwPlist) {
+        $t = [IO.File]::ReadAllText($rtwPlist)
+        $t = [regex]::Replace($t, '(<key>RTWAwdl\w*Enabled</key>\s*)<true/>', '$1<false/>')
+        if ($t -notmatch '<key>RTWAwdlEnabled</key>') {   # e.g. Debug artifacts ship without the key
+            $t = [regex]::Replace($t, '(<key>IOResourceMatch</key>\s*<string>IOBSD</string>)', "`$1`n`t`t`t<key>RTWAwdlEnabled</key>`n`t`t`t<false/>")
+        }
+        [IO.File]::WriteAllText($rtwPlist, $t)
+    }
+}
+if ($ExtraBootArgs) { $bootArgs += " $ExtraBootArgs" }
 Set-Val "NVRAM/Add/$apple/boot-args" $bootArgs
 Set-Val "NVRAM/Add/$apple/csr-active-config" (HexBytes '00000000')
 Set-Val "NVRAM/Add/$apple/prev-lang:kbd" (AsciiBytes 'de-DE:3')
