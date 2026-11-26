@@ -39,6 +39,7 @@ param(
     # (incl. 0x1 untrusted + 0x200 unapproved kexts) and AMFI relaxed (amfi=0x80). Debug only.
     [switch]$SipOff,
     [switch]$GpuAccel,       # -Target Gpu: boot-args + SIP 0x87F for the RadeArc install (docs/GPU.md step 3-4)
+    [switch]$Daily,          # daily use: no verbose text (-v) / debug=0x100, AppleDebug off, Ctrl+Enter sets the default entry
     [string]$Root
 )
 
@@ -269,16 +270,23 @@ if ($canopy) {
     Set-Val 'Misc/Boot/PickerMode' 'External'
     Set-Val 'Misc/Boot/PickerVariant' 'Acidanthera\GoldenGate'
     Set-Val 'Misc/Boot/PickerAttributes' 17   # custom icons + mouse pointer
+    # own entry icons (Apple.icns, Windows.icns, Linux.icns, Darkroot.icns ...) from build\icons: local only, never committed
+    $iconDir = Join-Path $Root 'build\icons'
+    if (Test-Path $iconDir) {
+        Get-ChildItem $iconDir -Filter *.icns | ForEach-Object {
+            Copy-Item $_.FullName (Join-Path $outEfi 'OC\Resources\Image\Acidanthera\GoldenGate') -Force; "  icon: $($_.Name)"
+        }
+    }
 } else {
     Set-Val 'Misc/Boot/PickerMode' 'Builtin'
 }
 Set-Val 'Misc/Boot/ShowPicker' $true
 Set-Val 'Misc/Boot/Timeout' 5
 Set-Val 'Misc/Boot/PollAppleHotKeys' $true
-Set-Val 'Misc/Debug/AppleDebug' $true
+Set-Val 'Misc/Debug/AppleDebug' (-not $Daily)
 Set-Val 'Misc/Debug/ApplePanic' $true
 Set-Val 'Misc/Debug/DisableWatchDog' $true
-Set-Val 'Misc/Debug/Target' 67          # 0x43: log on screen + to opencore-*.txt on the EFI volume
+Set-Val 'Misc/Debug/Target' $(if ($Daily) { 0 } else { 67 })  # 0x43: log on screen + to opencore-*.txt on the EFI volume
 Set-Val 'Misc/Security/AllowSetDefault' $true
 Set-Val 'Misc/Security/BlacklistAppleUpdate' $true
 Set-Val 'Misc/Security/ExposeSensitiveData' 6
@@ -286,6 +294,8 @@ Set-Val 'Misc/Security/ScanPolicy' 0
 Set-Val 'Misc/Security/SecureBootModel' 'Disabled'
 Set-Val 'Misc/Security/Vault' 'Optional'
 Clear-Node 'Misc/BlessOverride'; Clear-Node 'Misc/Entries'; Clear-Node 'Misc/Tools'
+# Darkroot OS (GRUB, --bootloader-id=Darkroot) is not found by OpenCore's scan on its own
+Add-Item 'Misc/BlessOverride' '\EFI\Darkroot\grubx64.efi'
 Add-Item 'Misc/Tools' ([ordered]@{
     Arguments = ''; Auxiliary = $true; Comment = 'OpenShell'; Enabled = $true; Flavour = 'OpenShell:UEFIShell:Shell'
     FullNvramAccess = $false; Name = 'UEFI Shell'; Path = 'OpenShell.efi'; RealPath = $false; TextMode = $false
@@ -297,6 +307,7 @@ $apple = '7C436110-AB2A-4BBB-A880-FE41995C9F82'
 $bootArgs = if ($Target -eq 'VM') { '-v keepsyms=1 debug=0x100' } else { "-v keepsyms=1 debug=0x100 alcid=$AlcLayout shda-lang=de ipc_control_port_options=0" }
 # phxdebug=1: RadeArc logging. Deliberately NO -phxp2 yet: without it PhxBringup only READS the GPU (Test A).
 if ($Target -eq 'Gpu') { $bootArgs += ' phxdebug=1' }
+if ($Daily) { $bootArgs = ($bootArgs -replace '(^| )-v( |$)', ' ' -replace '(^| )debug=0x100( |$)', ' ').Trim() -replace '  +', ' ' }
 # AirportRTW (Wi-Fi) on Tahoe: relax AMFI like the working 7840HS config, set the regulatory
 # country, and turn off the experimental AWDL frontend (added in V2.3.0) in the kext's Info.plist.
 if ($Target -ne 'VM' -and -not $NoWireless) {
