@@ -31,6 +31,7 @@ param(
     [string]$AirportRtwPath, # use this AirportRTW.kext (e.g. a local Debug build) instead of the pinned release
     [string]$OutName,        # write to build\<OutName> instead of build\EFI (test variants side by side)
     [string]$ExtraBootArgs,  # appended to boot-args (e.g. '-rtwpoll')
+    [switch]$WifiAspmOff,    # DeviceProperties pci-aspm-default=0 on the Wi-Fi card + its root port
     [string]$Root
 )
 
@@ -169,6 +170,16 @@ if ($Target -ne 'VM') {
 
 # --- DeviceProperties
 Clear-Node 'DeviceProperties/Add'; Clear-Node 'DeviceProperties/Delete'
+if ($WifiAspmOff) {
+    # RTL8852BE (PCIROOT(0)#PCI(0202)#PCI(0000) in Windows) and its AMD root port:
+    # keep the PCIe link out of ASPM L0s/L1 - the card froze the machine when the first scan started.
+    $dpAdd = Get-Val $top 'DeviceProperties/Add'
+    foreach ($p in 'PciRoot(0x0)/Pci(0x2,0x2)', 'PciRoot(0x0)/Pci(0x2,0x2)/Pci(0x0,0x0)') {
+        $ke = $doc.CreateElement('key'); $ke.InnerText = $p
+        [void]$dpAdd.AppendChild($ke)
+        [void]$dpAdd.AppendChild((New-Dict ([ordered]@{ 'pci-aspm-default' = (HexBytes '00000000') })))
+    }
+}
 
 # --- Kernel/Add  (Lilu first, then VirtualSMC, then plugins that depend on them)
 $disabledOnVM = 'AppleALC', 'NVMeFix', 'BlueToolFixup', 'RealtekBluetoothFirmware', 'RealtekRTL8111', 'AMDRyzenCPUPowerManagement', 'SMCAMDProcessor', 'AirportRTW', 'PhxXhciKick'
