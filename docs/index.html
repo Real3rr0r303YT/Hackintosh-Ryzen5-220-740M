@@ -143,10 +143,10 @@
 
 <div class="wrap">
   <div class="stats">
-    <div class="stat"><small>Boots to</small><b>Installer GUI</b></div>
+    <div class="stat"><small>Boots to</small><b>macOS Tahoe 26.6.2</b></div>
     <div class="stat"><small>Kernel patches</small><b>6 cores · 26.4+</b></div>
-    <div class="stat"><small>Wi-Fi</small><b>Patch in testing</b></div>
-    <div class="stat"><small>GPU</small><b>740M · experimental</b></div>
+    <div class="stat"><small>Wi-Fi</small><b>Works</b></div>
+    <div class="stat"><small>GPU</small><b>740M · Metal 3</b></div>
   </div>
 
   <section id="status">
@@ -159,11 +159,11 @@
       <div class="row"><span class="f">CPU init, macOS userspace</span><span class="pill ok">✔ Works</span><span class="n"><code>SSDT-PLUG-ALT</code> for ACPI0007 cores</span></div>
       <div class="row"><span class="f">Picture over HDMI</span><span class="pill ok">✔ Works</span><span class="n">Firmware framebuffer, no acceleration</span></div>
       <div class="row"><span class="f">Installer GUI · USB · mouse + keyboard</span><span class="pill ok">✔ Works</span><span class="n">Boots from the USB stick to the language picker and reinstall menu; <code>PhxXhciKick</code> Zen 4 xHCI fix</span></div>
-      <div class="row"><span class="f">Wi-Fi (RTL8852BE)</span><span class="pill exp">⚗ Patch in testing</span><span class="n">MSI fixed power-on; ASPM off got past 3 scans; driver fix ready, test after install. <a href="https://github.com/Real3rr0r303YT/AirportRTW/tree/fix/zen4-msi-poll">AirportRTW fork</a></span></div>
+      <div class="row"><span class="f">Wi-Fi (RTL8852BE)</span><span class="pill ok">✔ Works</span><span class="n">AirportRTW fork (MSI + ASPM off); freezes were a MmioWhitelist bug, now fixed</span></div>
       <div class="row"><span class="f">Bluetooth</span><span class="pill exp">⚗ Ready to test</span><span class="n"><a href="https://github.com/Real3rr0r303YT/RealtekBluetoothFirmware">RealtekBluetoothFirmware</a> (has <code>0489:E123</code>) + BlueToolFixup; enabled after install</span></div>
       <div class="row"><span class="f">Ethernet · Audio</span><span class="pill todo">○ Not tested</span><span class="n">Drivers load; LAN untested (no cable available)</span></div>
-      <div class="row"><span class="f">GPU acceleration (Radeon 740M)</span><span class="pill exp">⚗ Experimental</span><span class="n">RadeArc fork with PCI ID <code>1901</code> builds; test after install</span></div>
-      <div class="row"><span class="f">macOS installation</span><span class="pill todo">○ In progress</span><span class="n">Offline installer: full Tahoe 26.6.2 <code>InstallAssistant.pkg</code> on an exFAT partition, no network needed</span></div>
+      <div class="row"><span class="f">GPU acceleration (Radeon 740M)</span><span class="pill ok">✔ Metal 3</span><span class="n">RadeArc fork (ID 1901): desktop on the GPU, Liquid Glass and animations</span></div>
+      <div class="row"><span class="f">macOS installation</span><span class="pill ok">✔ Installed</span><span class="n">macOS Tahoe 26.6.2 via the offline installer</span></div>
       <div class="row"><span class="f">USB mapping · Sleep / wake</span><span class="pill todo">○ Not tested</span><span class="n">After installation</span></div>
       <div class="row"><span class="f">VirtualBox test VM</span><span class="pill no">✖ No</span><span class="n">Hangs under Hyper-V; use the USB stick instead</span></div>
     </div>

@@ -38,6 +38,7 @@ param(
     # SIP off for runtime kext loading (scripts/recovery-debug.sh): csr-active-config 0xFEF
     # (incl. 0x1 untrusted + 0x200 unapproved kexts) and AMFI relaxed (amfi=0x80). Debug only.
     [switch]$SipOff,
+    [switch]$GpuAccel,       # -Target Gpu: boot-args + SIP 0x87F for the RadeArc install (docs/GPU.md step 3-4)
     [string]$Root
 )
 
@@ -311,6 +312,15 @@ if ($SipOff) {
     # the ad-hoc signed AirportRTW also needs AMFI relaxed (-NoWireless drops these args above)
     if ($bootArgs -notmatch 'amfi=0x80') { $bootArgs += ' -amfipassbeta amfi=0x80' }
     Write-Host "SIP off: csr-active-config = $csr (0x00000FEF)" -ForegroundColor Yellow
+}
+if ($GpuAccel) {
+    # RadeArc/nullarc install (docs/INSTALL.md): PhxAccel in the AuxKC + Metal plugin in WindowServer need
+    # AMFI relaxed and SIP 0x87F; -phxp2 lets PhxBringup bring the Phoenix 2 GPU up at every boot.
+    foreach ($a in '-amfipassbeta', 'amfi=0x80', 'amfi_get_out_of_my_way=0x1', '-phxp2') {
+        if ($bootArgs -notmatch [regex]::Escape($a)) { $bootArgs += " $a" }
+    }
+    $csr = '7F080000'
+    Write-Host "GPU acceleration: csr-active-config = $csr (0x0000087F)" -ForegroundColor Yellow
 }
 Set-Val "NVRAM/Add/$apple/boot-args" $bootArgs
 Set-Val "NVRAM/Add/$apple/csr-active-config" (HexBytes $csr)

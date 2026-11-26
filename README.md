@@ -2,7 +2,7 @@
 
 OpenCore EFI for the **ASUS V500 Mini Tower (VM501MH / board PM500MH)** with **AMD Ryzen 5 220** and **Radeon 740M** iGPU, running **macOS Tahoe 26**.
 
-> ⚠️ **Work in progress (as of 2026-11-26).** The macOS Tahoe 26.6 installer/recovery boots to the GUI on the real hardware with `-NoWireless` (fast, mouse + keyboard work). Wi-Fi and Bluetooth are still experimental and are left out during the install. macOS is now being installed **offline** from Apple's full installer package ([docs/OFFLINE-INSTALL.md](docs/OFFLINE-INSTALL.md)); Wi-Fi, Bluetooth and GPU acceleration are tested after that. Use at your own risk and back up your data first.
+> ✅ **Working (as of 2026-11-26):** macOS Tahoe 26.6.2 is installed and runs on the real hardware with Wi-Fi and **Metal 3 GPU acceleration** on the Radeon 740M (RadeArc fork). Bluetooth, audio and LAN are not tested yet. Alpha-quality GPU driver: keep the no-GPU EFI (`build\EFI-wifi-mmio`) on a USB stick as a fallback.
 
 ## Hardware
 
@@ -35,12 +35,12 @@ Full details: [docs/HARDWARE.md](docs/HARDWARE.md)
 | Display via HDMI (no acceleration) | ✅ | Firmware framebuffer (GOP) |
 | Installer GUI (language picker, reinstall menu) | ✅ | Built with `-NoWireless`, boots to the GUI very fast. Needed `PhxXhciKick.kext` (Zen 4 xHCI interrupt fix, from [kevin8717/TongFang-7840HS-Hackintosh](https://github.com/kevin8717/TongFang-7840HS-Hackintosh), MIT) |
 | USB / keyboard / mouse | ✅ | Work in the installer with `PhxXhciKick` |
-| Wi-Fi | 🧪 | Stock AirportRTW (+ `AMFIPass.kext`) froze the recovery when the card powered on. Our fork [Real3rr0r303YT/AirportRTW `fix/zen4-msi-poll`](https://github.com/Real3rr0r303YT/AirportRTW/tree/fix/zen4-msi-poll) uses MSI instead of INTx: that fixed the power-on freeze, but the first scan still froze (both in MSI and `-rtwpoll` mode). With PCIe ASPM disabled it survived 3 scans. The driver now clears ASPM / L1SS / CLKREQ itself (untested); next test after install. Results: [docs/WIFI-TEST.md](docs/WIFI-TEST.md) |
+| Wi-Fi | ✅ | Works (Recovery and installed macOS) with our [AirportRTW fork](https://github.com/Real3rr0r303YT/AirportRTW/tree/fix/zen4-msi-poll) (MSI + ASPM off). The freezes were caused by a bug in our MmioWhitelist (negative addresses), fixed in `Build-EFI.ps1` |
 | Bluetooth | 🧪 | `RealtekBluetoothFirmware.kext` 1.0.2 (has `0489:E123`, firmware bundled), built from our audited fork [Real3rr0r303YT/RealtekBluetoothFirmware](https://github.com/Real3rr0r303YT/RealtekBluetoothFirmware), + BlueToolFixup. Off during the install, enabled afterwards |
 | Ethernet (LAN) | 🔲 | RealtekRTL8111 injected; untested (no cable available) |
 | Audio | 🔲 | AppleALC (layout 11) injected; untested |
-| GPU acceleration (740M) | ⚗ | [RadeArc fork](https://github.com/Real3rr0r303YT/RadeArc) with PCI ID `1901` built; tested after install, see [docs/GPU.md](docs/GPU.md) |
-| macOS installation | 🔲 | **In progress** via the offline installer (full `InstallAssistant.pkg`, Tahoe 26.6.2, no internet needed), see [docs/OFFLINE-INSTALL.md](docs/OFFLINE-INSTALL.md) |
+| GPU acceleration (740M) | ✅ | **Metal 3** with our [RadeArc fork](https://github.com/Real3rr0r303YT/RadeArc) (PCI ID `1901`): Tests A–D passed (Phoenix 2, firmware load, MES/queues, RADV 256/256), desktop composited on the GPU (Liquid Glass, Dock animations). `build\EFI-GPU-accel`, see [docs/GPU.md](docs/GPU.md) |
+| macOS installation | ✅ | macOS Tahoe 26.6.2 installed with the offline installer ([docs/OFFLINE-INSTALL.md](docs/OFFLINE-INSTALL.md)) |
 | USB mapping / sleep | 🔲 | after install |
 | VirtualBox VM test | ❌ | reaches the macOS kernel, hangs at `EXITBS:START` under Hyper-V "snail mode" |
 
