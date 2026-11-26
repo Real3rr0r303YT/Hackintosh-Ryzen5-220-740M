@@ -77,6 +77,12 @@ try {
     if (Test-Path "$esp\EFI\OC") { Remove-Item "$esp\EFI\OC" -Recurse -Force }
     Copy-Item "$src\OC" "$esp\EFI\OC" -Recurse -Force
     "copied $src\OC -> $esp\EFI\OC"
+    # Darkroot OS on this ESP: give its GRUB entry a name and the Darkroot icon in the OpenCore picker
+    if (Test-Path "$esp\EFI\Darkroot\grubx64.efi") {
+        [IO.File]::WriteAllText("$esp\EFI\Darkroot\.contentFlavour", 'Darkroot:Linux')
+        [IO.File]::WriteAllText("$esp\EFI\Darkroot\.contentDetails", 'Darkroot OS')
+        'Darkroot OS found: picker name + icon set'
+    }
 
     $id = Get-OcEntry
     if (-not $id) {
