@@ -64,8 +64,15 @@ try {
     # full backup of the ESP
     $bak = Join-Path $Root ("build\esp-backup-" + (Get-Date -Format 'yyyyMMdd-HHmmss'))
     New-Item -ItemType Directory -Force $bak | Out-Null
-    Copy-Item "$esp\*" $bak -Recurse -Force
-    "ESP backup: $bak"
+    # the running Windows keeps \EFI\Microsoft\Boot\BCD locked: copy file by file, export the BCD store instead
+    $skipped = 0
+    Get-ChildItem "$esp\" -Recurse -Force -File | ForEach-Object {
+        $dst = Join-Path $bak $_.FullName.Substring($esp.Length + 1)
+        New-Item -ItemType Directory -Force (Split-Path -Parent $dst) | Out-Null
+        try { Copy-Item $_.FullName $dst -Force -ErrorAction Stop } catch { $skipped++ }
+    }
+    bcdedit /export (Join-Path $bak 'BCD-export') | Out-Null
+    "ESP backup: $bak  (locked files skipped: $skipped, BCD exported to BCD-export)"
 
     if (Test-Path "$esp\EFI\OC") { Remove-Item "$esp\EFI\OC" -Recurse -Force }
     Copy-Item "$src\OC" "$esp\EFI\OC" -Recurse -Force

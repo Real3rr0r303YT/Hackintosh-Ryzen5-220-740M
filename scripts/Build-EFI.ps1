@@ -262,7 +262,16 @@ foreach ($k in $kq.Keys) { Set-Val "Kernel/Quirks/$k" $kq[$k] }
 # --- Misc
 # Recovery/installer entries count as "auxiliary" - keep them visible while installing
 Set-Val 'Misc/Boot/HideAuxiliary' $false
-Set-Val 'Misc/Boot/PickerMode' 'Builtin'
+# Graphical picker (OpenCanopy, GoldenGate theme) when its driver + resources were fetched; VM keeps the text picker
+$canopy = $Target -ne 'VM' -and (Test-Path (Join-Path $outEfi 'OC\Drivers\OpenCanopy.efi')) -and
+          (Test-Path (Join-Path $outEfi 'OC\Resources\Image\Acidanthera\GoldenGate'))
+if ($canopy) {
+    Set-Val 'Misc/Boot/PickerMode' 'External'
+    Set-Val 'Misc/Boot/PickerVariant' 'Acidanthera\GoldenGate'
+    Set-Val 'Misc/Boot/PickerAttributes' 17   # custom icons + mouse pointer
+} else {
+    Set-Val 'Misc/Boot/PickerMode' 'Builtin'
+}
 Set-Val 'Misc/Boot/ShowPicker' $true
 Set-Val 'Misc/Boot/Timeout' 5
 Set-Val 'Misc/Boot/PollAppleHotKeys' $true
@@ -334,7 +343,9 @@ Set-Val 'NVRAM/WriteFlash' $true
 
 # --- UEFI
 Clear-Node 'UEFI/Drivers'; Clear-Node 'UEFI/ReservedMemory'
-foreach ($drv in 'OpenRuntime.efi', 'HfsPlus.efi', 'ResetNvramEntry.efi') {
+$drivers = @('OpenRuntime.efi', 'HfsPlus.efi', 'ResetNvramEntry.efi')
+if ($canopy) { $drivers += 'OpenCanopy.efi' }
+foreach ($drv in $drivers) {
     Add-Item 'UEFI/Drivers' ([ordered]@{ Arguments = ''; Comment = $drv; Enabled = $true; HideVerbose = $false; LoadEarly = $false; Path = $drv })
 }
 Set-Val 'UEFI/Quirks/ReleaseUsbOwnership' $true
@@ -360,7 +371,11 @@ function Set-Smbios($s) {
     Set-Val 'PlatformInfo/Generic/ROM' (HexBytes $s.ROM)
 }
 Set-Val 'PlatformInfo/Automatic' $true
-Set-Val 'PlatformInfo/UpdateSMBIOSMode' 'Create'
+# Custom + CustomSMBIOSGuid: the Mac SMBIOS goes to Apple's own GUID, so Windows started from the OpenCore
+# picker still sees the real ASUS SMBIOS (keeps Windows activation). Same as the working 7840HS config.
+$smbiosMode = if ($Target -eq 'VM') { 'Create' } else { 'Custom' }
+Set-Val 'PlatformInfo/UpdateSMBIOSMode' $smbiosMode
+Set-Val 'Kernel/Quirks/CustomSMBIOSGuid' ($smbiosMode -eq 'Custom')
 Set-Smbios @{ Serial = 'W00000000001'; MLB = 'M0000000000000001'; UUID = '00000000-0000-0000-0000-000000000000'; ROM = '112233445566' }
 
 function Save-Plist([string]$path) {

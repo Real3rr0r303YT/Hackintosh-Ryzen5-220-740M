@@ -2,7 +2,7 @@
 
 OpenCore EFI for the **ASUS V500 Mini Tower (VM501MH / board PM500MH)** with **AMD Ryzen 5 220** and **Radeon 740M** iGPU, running **macOS Tahoe 26**.
 
-> ✅ **Working (as of 2026-11-26):** macOS Tahoe 26.6.2 is installed and runs on the real hardware with Wi-Fi and **Metal 3 GPU acceleration** on the Radeon 740M (RadeArc fork). Bluetooth, audio and LAN are not tested yet. Alpha-quality GPU driver: keep the no-GPU EFI (`build\EFI-wifi-mmio`) on a USB stick as a fallback.
+> ✅ **Working (as of 2026-11-26):** macOS Tahoe 26.6.2 is installed and runs on the real hardware with Wi-Fi and **Metal 3 GPU acceleration** on the Radeon 740M (RadeArc fork). OpenCore boots from the internal SSD with a graphical picker. Bluetooth, audio and LAN are not tested yet. Alpha-quality GPU driver: keep the USB stick (`build\EFI-usb`, no GPU driver) as a fallback.
 
 ## Hardware
 
@@ -41,6 +41,7 @@ Full details: [docs/HARDWARE.md](docs/HARDWARE.md)
 | Audio | 🔲 | AppleALC (layout 11) injected; untested |
 | GPU acceleration (740M) | ✅ | **Metal 3** with our [RadeArc fork](https://github.com/Real3rr0r303YT/RadeArc) (PCI ID `1901`): Tests A–D passed (Phoenix 2, firmware load, MES/queues, RADV 256/256), desktop composited on the GPU (Liquid Glass, Dock animations). `build\EFI-GPU-accel`, see [docs/GPU.md](docs/GPU.md) |
 | macOS installation | ✅ | macOS Tahoe 26.6.2 installed with the offline installer ([docs/OFFLINE-INSTALL.md](docs/OFFLINE-INSTALL.md)) |
+| OpenCore on the internal SSD | ✅ | `Install-EfiToDisk.ps1`, graphical picker (OpenCanopy) with macOS + Windows, no stick needed |
 | USB mapping / sleep | 🔲 | after install |
 | VirtualBox VM test | ❌ | reaches the macOS kernel, hangs at `EXITBS:START` under Hyper-V "snail mode" |
 
@@ -76,6 +77,7 @@ powershell -ExecutionPolicy Bypass -File scripts\Build-EFI.ps1 -Target VM
 | `-OutName <name>` | write to `build\<name>` instead of `build\EFI` (test variants side by side) |
 | `-ExtraBootArgs '<args>'` | append to boot-args (e.g. `'-rtwpoll'`) |
 | `-WifiAspmOff` | DeviceProperties `pci-aspm-default=0` on the Wi-Fi card and its root port |
+| `-GpuAccel` | boot-args and SIP (`csr-active-config 7F080000`) for RadeArc's `install.sh` (use with `-Target Gpu`) |
 | `-SkipFetch` | reuse the downloads from a previous run |
 | `-NewSmbios` | generate `smbios.local.json` if it doesn't exist yet |
 
@@ -86,17 +88,48 @@ Result: `build\EFI`, `build\EFI-GPU`, `build\EFI-VM` or `build\<OutName>`, check
 ## USB installer
 
 ```powershell
+# installer / fallback EFI: Wi-Fi fix + graphical picker, no GPU driver
+powershell -ExecutionPolicy Bypass -File scripts\Build-EFI.ps1 -Target Hardware -DebugOpenCore -NoBluetooth -OutName EFI-usb
+
 # admin PowerShell, ERASES the stick (only accepts USB disks, asks for confirmation)
-powershell -ExecutionPolicy Bypass -File scripts\New-UsbInstaller.ps1 -DiskNumber 1
+powershell -ExecutionPolicy Bypass -File scripts\New-UsbInstaller.ps1 -DiskNumber 1 -Source build\EFI-usb
 
 # later: only replace the EFI, keep the recovery (also saves the OpenCore logs to build\usb-logs)
-powershell -ExecutionPolicy Bypass -File scripts\New-UsbInstaller.ps1 -DiskNumber 1 -UpdateEfi
-
-# write a specific EFI variant (default build\EFI)
-powershell -ExecutionPolicy Bypass -File scripts\New-UsbInstaller.ps1 -DiskNumber 1 -UpdateEfi -Source build\EFI-nowifi
+powershell -ExecutionPolicy Bypass -File scripts\New-UsbInstaller.ps1 -DiskNumber 1 -UpdateEfi -Source build\EFI-usb
 ```
 
-The recovery comes from Apple via `macrecovery.py` (see [docs/VM-TEST.md](docs/VM-TEST.md), step 2). BIOS settings: [docs/BIOS.md](docs/BIOS.md). Offline install from the recovery: [docs/OFFLINE-INSTALL.md](docs/OFFLINE-INSTALL.md).
+Both also write a **`gpu` folder** to the stick's RECOVERY partition (RadeArc package + `install-gpu.sh`, `gpu-reset.sh`, `LIESMICH.txt`), if `build\gpu\usb\pkg\radearc-package.zip` exists:
+
+```powershell
+gh release download package-latest -R Real3rr0r303YT/RadeArc -D build\gpu\usb\pkg
+```
+
+With the Wi-Fi fix the recovery has Wi-Fi, so the normal online reinstall works. The recovery comes from Apple via `macrecovery.py` (see [docs/VM-TEST.md](docs/VM-TEST.md), step 2). BIOS settings: [docs/BIOS.md](docs/BIOS.md). Offline install from the recovery: [docs/OFFLINE-INSTALL.md](docs/OFFLINE-INSTALL.md).
+
+## OpenCore on the internal SSD (no stick)
+
+```powershell
+# admin PowerShell: backs up the EFI partition to build\esp-backup-<date>, copies EFI\OC next to Windows,
+# adds a UEFI boot entry "OpenCore" and puts it first. Windows' own files are not touched.
+powershell -ExecutionPolicy Bypass -File scripts\Install-EfiToDisk.ps1 -Source build\EFI-GPU-accel
+
+# undo (Windows boots directly again)
+powershell -ExecutionPolicy Bypass -File scripts\Install-EfiToDisk.ps1 -Remove
+```
+
+OpenCore then shows the graphical picker (OpenCanopy, GoldenGate icons) with macOS and Windows. Windows started from OpenCore keeps its real SMBIOS (`UpdateSMBIOSMode Custom`), so its activation is not affected.
+
+## GPU acceleration (Radeon 740M)
+
+Boot macOS with `build\EFI-GPU-accel` (`-Target Gpu -GpuAccel`), then in the macOS Terminal:
+
+```sh
+bash /Volumes/RECOVERY/gpu/install-gpu.sh
+```
+
+Stage 1 (Metal for apps) installs right away and turns on auto-login. After the next boot a one-shot LaunchDaemon waits for the GPU to come up cleanly, installs stage 2 (WindowServer on the GPU: Liquid Glass, blur, Dock animations) and shows the result in a dialog. One more restart and the desktop runs on the GPU.
+
+**Wait 1–2 minutes after the desktop appears before restarting.** If a boot is cut off while the GPU starts, RadeArc's `phxboot` sets a kill switch and the next boots stay on the plain framebuffer (white wallpaper, no Liquid Glass). Fix: `bash /Volumes/RECOVERY/gpu/gpu-reset.sh` (or `sudo rm /Users/Shared/gpu/phxboot-off`), then restart. Details: [docs/GPU.md](docs/GPU.md).
 
 ## Repository layout
 
@@ -106,7 +139,9 @@ scripts/
   components.json      pinned versions + download URLs
   Fetch-EFI.ps1        downloads everything into build/
   Build-EFI.ps1        generates config.plist (AMD patches, quirks, kexts) + ocvalidate
-  New-UsbInstaller.ps1 writes EFI + recovery to a USB stick
+  New-UsbInstaller.ps1 writes EFI + recovery (+ gpu folder) to a USB stick
+  Install-EfiToDisk.ps1 copies OpenCore to the internal EFI partition + boot entry
+  gpu/                 install-gpu.sh (stage 1 + automatic stage 2), stage2.sh, gpu-reset.sh, test scripts
   New-TestVM.ps1       VirtualBox test VM
   offline-install.sh   offline macOS install from InstallAssistant.pkg (run in the recovery)
   read_fat_logs.py     reads OpenCore logs out of a FAT32 disk image

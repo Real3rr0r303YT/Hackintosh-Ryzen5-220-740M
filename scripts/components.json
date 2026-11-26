@@ -18,6 +18,10 @@
           "to": "OC/Drivers"
         },
         {
+          "pick": "X64/EFI/OC/Drivers/OpenCanopy.efi",
+          "to": "OC/Drivers"
+        },
+        {
           "pick": "X64/EFI/OC/Drivers/ResetNvramEntry.efi",
           "to": "OC/Drivers"
         },
@@ -50,6 +54,25 @@
         {
           "pick": "HfsPlus.efi",
           "to": "OC/Drivers"
+        }
+      ]
+    },
+    {
+      "_comment": "OpenCanopy graphical picker: fonts, labels and the GoldenGate icon theme (pinned commit).",
+      "name": "OcBinaryData-Resources",
+      "url": "https://github.com/acidanthera/OcBinaryData/archive/640e7e9240938f2529e725351e1e1150dc3569db.zip",
+      "items": [
+        {
+          "pick": "Resources/Font",
+          "to": "OC/Resources"
+        },
+        {
+          "pick": "Resources/Label",
+          "to": "OC/Resources"
+        },
+        {
+          "pick": "Resources/Image/Acidanthera/GoldenGate",
+          "to": "OC/Resources/Image/Acidanthera"
         }
       ]
     },

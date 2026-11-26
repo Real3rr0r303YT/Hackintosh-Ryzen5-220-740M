@@ -44,9 +44,21 @@ Needed for steps 3–4 (not in the EFI yet): AMFIPass + `amfi=0x80 amfi_get_out_
 
 **Never run** the `testj`/`testl*` scripts: display experiments, one of them took the whole DCN block down.
 
+## Install (stage 1 + automatic stage 2)
+
+From the USB stick (`New-UsbInstaller.ps1` puts the `gpu` folder on its RECOVERY partition), booted with `build\EFI-GPU-accel`:
+
+```sh
+bash /Volumes/RECOVERY/gpu/install-gpu.sh
+```
+
+`install.sh --check`, then stage 1 (Metal for apps), auto-login, and a one-shot LaunchDaemon (`local.radearc.stage2`) that runs `install.sh --windowserver` at the next boot only if `phxboot` reported `done`. Logs: `install-gpu.log`, `stage2.log`, `phxboot.log` in the stick's `gpu` folder.
+
+**Kill switch:** if a boot is cut off while the GPU starts (restart too early), `phxboot` writes `/Users/Shared/gpu/phxboot-off` and later boots stay on the GOP framebuffer (white wallpaper, no Liquid Glass). `bash /Volumes/RECOVERY/gpu/gpu-reset.sh` removes it; then restart and wait 1-2 minutes after the desktop appears.
+
 ## Escape hatches
 
-- Boot the normal EFI (USB stick without PhxBringup)
+- Boot the USB stick (`build\EFI-usb`, no PhxBringup, SIP on)
 - Boot-args `-phxoff`, `-phxfboff`, `-phxbringupoff`
 - `sudo touch /Users/Shared/gpu/phxboot-off`, or RadeArc's `uninstall.sh`
 

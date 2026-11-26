@@ -163,6 +163,7 @@
       <div class="row"><span class="f">Bluetooth</span><span class="pill exp">⚗ Ready to test</span><span class="n"><a href="https://github.com/Real3rr0r303YT/RealtekBluetoothFirmware">RealtekBluetoothFirmware</a> (has <code>0489:E123</code>) + BlueToolFixup; enabled after install</span></div>
       <div class="row"><span class="f">Ethernet · Audio</span><span class="pill todo">○ Not tested</span><span class="n">Drivers load; LAN untested (no cable available)</span></div>
       <div class="row"><span class="f">GPU acceleration (Radeon 740M)</span><span class="pill ok">✔ Metal 3</span><span class="n">RadeArc fork (ID 1901): desktop on the GPU, Liquid Glass and animations</span></div>
+      <div class="row"><span class="f">OpenCore on the internal SSD</span><span class="pill ok">✔ Works</span><span class="n">Graphical picker (OpenCanopy) with macOS and Windows; Windows keeps its real SMBIOS</span></div>
       <div class="row"><span class="f">macOS installation</span><span class="pill ok">✔ Installed</span><span class="n">macOS Tahoe 26.6.2 via the offline installer</span></div>
       <div class="row"><span class="f">USB mapping · Sleep / wake</span><span class="pill todo">○ Not tested</span><span class="n">After installation</span></div>
       <div class="row"><span class="f">VirtualBox test VM</span><span class="pill no">✖ No</span><span class="n">Hangs under Hyper-V; use the USB stick instead</span></div>
@@ -202,12 +203,17 @@ python macrecovery.py -b Mac-CFF7D910A743CAAF -m 00000000000000000 -os latest -o
 
   <section id="install">
     <p class="eyebrow">Install</p>
-    <h2>Installing macOS offline</h2>
+    <h2>Installing macOS, GPU and the boot loader</h2>
     <div class="card steps">
-      <div class="step"><div class="num">1</div><div><h3>Build the EFI on Windows</h3><p><code>Build-EFI.ps1</code> fetches OpenCore + kexts; use the no-Wi-Fi variant (<code>-NoWireless -OutName EFI-nowifi</code>) for the install.</p></div></div>
-      <div class="step"><div class="num">2</div><div><h3>Write the USB stick</h3><p><code>New-UsbInstaller.ps1</code> writes Recovery + EFI to the stick.</p></div>
-        <pre><code>powershell -ExecutionPolicy Bypass -File scripts\New-UsbInstaller.ps1 -DiskNumber 1 -UpdateEfi -Source build\EFI-nowifi</code></pre></div>
-      <div class="step"><div class="num">3</div><div><h3>Install offline</h3><p>Full installer on an exFAT partition, then <code>offline-install.sh</code> from the Recovery Terminal. Steps in <a href="https://github.com/Real3rr0r303YT/Hackintosh-Ryzen5-220-740M/blob/main/docs/OFFLINE-INSTALL.md"><u>OFFLINE-INSTALL.md</u></a>; Wi-Fi afterwards per <a href="https://github.com/Real3rr0r303YT/Hackintosh-Ryzen5-220-740M/blob/main/docs/WIFI-TEST.md"><u>WIFI-TEST.md</u></a>.</p></div></div>
+      <div class="step"><div class="num">1</div><div><h3>Build the installer EFI</h3><p>Hardware EFI with the Wi-Fi fix and the graphical picker, no GPU driver. Recovery has Wi-Fi with it, so the normal online install works.</p></div>
+        <pre><code>powershell -ExecutionPolicy Bypass -File scripts\Build-EFI.ps1 -Target Hardware -DebugOpenCore -NoBluetooth -OutName EFI-usb</code></pre></div>
+      <div class="step"><div class="num">2</div><div><h3>Write it to the stick</h3><p>Admin PowerShell. Keeps the recovery and also copies the <code>gpu</code> folder (RadeArc package + install scripts) onto the stick's RECOVERY partition.</p></div>
+        <pre><code>powershell -ExecutionPolicy Bypass -File scripts\New-UsbInstaller.ps1 -DiskNumber 1 -UpdateEfi -Source build\EFI-usb</code></pre></div>
+      <div class="step"><div class="num">3</div><div><h3>Install macOS</h3><p>Reinstall from Recovery over Wi-Fi, or offline from <code>InstallAssistant.pkg</code> (<a href="https://github.com/Real3rr0r303YT/Hackintosh-Ryzen5-220-740M/blob/main/docs/OFFLINE-INSTALL.md"><u>OFFLINE-INSTALL.md</u></a>).</p></div></div>
+      <div class="step"><div class="num">4</div><div><h3>OpenCore onto the SSD</h3><p>Copies <code>EFI\OC</code> next to Windows on the internal EFI partition (backup first) and puts “OpenCore” first in the boot order. No stick needed after that; undo with <code>-Remove</code>.</p></div>
+        <pre><code>powershell -ExecutionPolicy Bypass -File scripts\Install-EfiToDisk.ps1 -Source build\EFI-GPU-accel</code></pre></div>
+      <div class="step"><div class="num">5</div><div><h3>GPU acceleration</h3><p>In macOS, booted with <code>EFI-GPU-accel</code>. Stage 1 (Metal for apps) installs now; after the next boot stage 2 (desktop on the GPU, Liquid Glass) installs itself and shows the result in a dialog. See <a href="https://github.com/Real3rr0r303YT/Hackintosh-Ryzen5-220-740M/blob/main/docs/GPU.md"><u>GPU.md</u></a>.</p></div>
+        <pre><code>bash /Volumes/RECOVERY/gpu/install-gpu.sh</code></pre></div>
     </div>
   </section>
 
