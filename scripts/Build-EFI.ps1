@@ -262,7 +262,8 @@ foreach ($k in $kq.Keys) { Set-Val "Kernel/Quirks/$k" $kq[$k] }
 
 # --- Misc
 # Recovery/installer entries count as "auxiliary" - keep them visible while installing
-Set-Val 'Misc/Boot/HideAuxiliary' $false
+# installed system (-Target Gpu): hide Recovery / Reset NVRAM / tools like a real Mac (Space shows them)
+Set-Val 'Misc/Boot/HideAuxiliary' ($Target -eq 'Gpu')
 # Graphical picker (OpenCanopy, GoldenGate theme) when its driver + resources were fetched; VM keeps the text picker
 $canopy = $Target -ne 'VM' -and (Test-Path (Join-Path $outEfi 'OC\Drivers\OpenCanopy.efi')) -and
           (Test-Path (Join-Path $outEfi 'OC\Resources\Image\Acidanthera\GoldenGate'))
