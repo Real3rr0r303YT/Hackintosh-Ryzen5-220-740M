@@ -43,6 +43,18 @@ if ($disk.Size -lt 3GB) { throw 'USB stick too small (need at least 4 GB).' }
 $espGuid  = '{c12a7328-f81f-11d2-ba4b-00a0c93ec93b}'
 $dataGuid = '{ebd0a0a2-b9e5-4433-87c0-68b6b72699c7}'
 
+# GPU folder for macOS (RECOVERY\gpu): RadeArc install scripts + package, run from macOS with
+#   bash /Volumes/RECOVERY/gpu/install-gpu.sh
+function Copy-GpuBundle([string]$letter) {
+    $zip = Join-Path $Root 'build\gpu\usb\pkg\radearc-package.zip'
+    if (-not (Test-Path $zip)) { Write-Host '  GPU folder skipped (no build\gpu\usb\pkg\radearc-package.zip, see docs\GPU.md)' -ForegroundColor DarkGray; return }
+    $dst = "$($letter):\gpu"
+    New-Item -ItemType Directory -Force "$dst\pkg" | Out-Null
+    foreach ($f in 'install-gpu.sh', 'stage2.sh', 'local.radearc.stage2.plist', 'gpu-reset.sh', 'LIESMICH.txt') { Copy-Item (Join-Path $PSScriptRoot "gpu\$f") $dst -Force }
+    Copy-Item $zip "$dst\pkg\" -Force
+    Write-Host "  GPU folder written: $dst (install-gpu.sh, gpu-reset.sh, RadeArc package)" -ForegroundColor Cyan
+}
+
 if ($UpdateEfi) {
     $p1 = Get-Partition -DiskNumber $DiskNumber -PartitionNumber 1 -ErrorAction SilentlyContinue
     $p2 = Get-Partition -DiskNumber $DiskNumber -PartitionNumber 2 -ErrorAction SilentlyContinue
@@ -72,6 +84,12 @@ if ($UpdateEfi) {
     } finally {
         Set-Partition -DiskNumber $DiskNumber -PartitionNumber 1 -GptType $espGuid
     }
+    $p2l = (Get-Partition -DiskNumber $DiskNumber -PartitionNumber 2).DriveLetter
+    if (-not $p2l -or $p2l -eq [char]0) {
+        Add-PartitionAccessPath -DiskNumber $DiskNumber -PartitionNumber 2 -AssignDriveLetter -ErrorAction SilentlyContinue
+        foreach ($i in 1..20) { $p2l = (Get-Partition -DiskNumber $DiskNumber -PartitionNumber 2).DriveLetter; if ($p2l -and $p2l -ne [char]0 -and (Test-Path "$($p2l):\")) { break }; Start-Sleep -Milliseconds 500 }
+    }
+    if ($p2l -and $p2l -ne [char]0) { Copy-GpuBundle $p2l } else { Write-Host '  RECOVERY partition has no drive letter - GPU folder skipped' -ForegroundColor Yellow }
     Write-Host "`nUSB stick EFI updated. Boot from it again (ASUS boot menu: F8)." -ForegroundColor Green
     return
 }
@@ -109,6 +127,7 @@ Format-Volume -Partition $recPart -FileSystem FAT32 -NewFileSystemLabel RECOVERY
 $recLetter = Wait-DriveLetter $recPart.PartitionNumber
 Write-Host 'Copying recovery (~1 GB) ...' -ForegroundColor Cyan
 Copy-Item $recovery "$($recLetter):\" -Recurse -Force
+Copy-GpuBundle $recLetter
 
 Write-Host "OPENCORE ($($efiLetter):): $((Get-ChildItem "$($efiLetter):\EFI" -Force).Name -join ', ')" -ForegroundColor Cyan
 Write-Host "RECOVERY ($($recLetter):): $((Get-ChildItem "$($recLetter):\com.apple.recovery.boot").Name -join ', ')" -ForegroundColor Cyan

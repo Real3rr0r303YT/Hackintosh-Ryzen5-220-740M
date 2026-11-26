@@ -1,0 +1,14 @@
+Radeon 740M GPU-Beschleunigung (RadeArc), auf dem Stick im Ordner RECOVERY/gpu
+
+Voraussetzung: macOS mit der EFI-GPU-accel starten (OpenCore auf der SSD, Eintrag "Macintosh HD").
+
+Installieren (Terminal in macOS):
+    bash /Volumes/RECOVERY/gpu/install-gpu.sh
+  -> Stufe 1 (Metal fuer Apps) sofort, Neustart, dann installiert sich Stufe 2
+     (Desktop auf der GPU, Liquid Glass) automatisch und meldet sich mit einem Fenster.
+
+Liquid Glass / Hintergrund weg nach einem zu fruehen Neustart:
+    bash /Volumes/RECOVERY/gpu/gpu-reset.sh
+  -> danach neu starten und nach dem Hochfahren 1-2 Minuten warten.
+
+Logs landen hier im Ordner (install-gpu.log, stage2.log, phxboot.log) und sind von Windows lesbar.
