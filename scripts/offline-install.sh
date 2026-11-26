@@ -102,7 +102,70 @@ say ""
 say "3/3: Installation starten ..."
 say "Der PC startet danach mehrmals neu: jedes Mal F8, den Stick waehlen, dann im OpenCore-Menue"
 say "'macOS Installer' und spaeter 'Macintosh HD' waehlen."
+# Recorder: the install froze twice at ~42 % of "Preparing". Every 15 s write memory, disk and
+# the last install.log lines to MACPKG (synced), so the state right before a freeze survives.
+MON="$MACPKG/monitor.log"
+(
+    n=0
+    while true; do
+        n=$((n + 1))
+        {
+            echo "===== $(date) #$n ====="
+            vm_stat 2>&1 | head -10
+            sysctl vm.swapusage 2>&1
+            df -h "$TARGET" / /private/var 2>&1
+            ps -axo pid,rss,pcpu,comm 2>/dev/null | sort -k2 -n -r | head -8
+            tail -60 /var/log/install.log 2>&1
+        } > "$MON.tmp" 2>&1
+        [ -f "$MON" ] && cp -f "$MON" "$MACPKG/monitor-prev.log" 2>/dev/null
+        mv -f "$MON.tmp" "$MON"
+        sync
+        sleep 15
+    done
+) &
+MON_PID=$!
+# Kernel recorder: the freezes are hard (no panic), so stream the kernel log to MACPKG and
+# keep dmesg snapshots, with `sync` every 2 s. Previous run's files are kept as *-prev.log.
+KLOG="$MACPKG/kernel-stream.log"
+KDMESG="$MACPKG/kernel-dmesg.log"
+[ -s "$KLOG" ] && mv -f "$KLOG" "$MACPKG/kernel-stream-prev.log" 2>/dev/null
+[ -s "$KDMESG" ] && mv -f "$KDMESG" "$MACPKG/kernel-dmesg-prev.log" 2>/dev/null
+: > "$KLOG"
+KPIDS=""
+if command -v log >/dev/null 2>&1; then
+    # `script -F` = pty + flush after every write (no stdio buffer lost on a freeze)
+    if command -v script >/dev/null 2>&1; then
+        script -a -q -F "$KLOG" log stream --style compact --level debug \
+            --predicate 'process == "kernel"' < /dev/null > /dev/null 2>&1 &
+        KPIDS="$KPIDS $!"
+        sleep 3
+    fi
+    if [ ! -s "$KLOG" ]; then
+        log stream --style compact --level debug --predicate 'process == "kernel"' \
+            >> "$KLOG" 2>&1 < /dev/null &
+        KPIDS="$KPIDS $!"
+    fi
+fi
+(
+    while true; do
+        if command -v dmesg >/dev/null 2>&1; then
+            dmesg > "$KDMESG.tmp" 2>&1 && mv -f "$KDMESG.tmp" "$KDMESG"
+        fi
+        sync
+        sleep 2
+    done
+) < /dev/null > /dev/null 2>&1 &
+KPIDS="$KPIDS $!"
+stop_recorders() {
+    kill $MON_PID $KPIDS 2>/dev/null
+    command -v pkill >/dev/null 2>&1 && pkill -f 'log stream --style compact' 2>/dev/null
+    sync
+}
+trap 'stop_recorders; exit 1' INT TERM
+say "Kernel-Log laeuft mit -> kernel-stream.log / kernel-dmesg.log auf MACPKG."
 "$APP/Contents/Resources/startosinstall" --agreetolicense --volume "$TARGET" 2>&1 | tee -a "$LOG"
+stop_recorders
+trap - INT TERM
 
 # startosinstall only returns if it did not start (it reboots on success).
 say ""

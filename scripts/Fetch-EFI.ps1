@@ -47,7 +47,10 @@ function Find-Item([string]$base, [string]$pick) {
 
 foreach ($c in $manifest.components) {
     if ($DebugOpenCore -and $c.name -eq 'OpenCore') { $c.url = $c.url -replace '-RELEASE\.zip$', '-DEBUG.zip' }
-    $file = Join-Path $dlDir ([IO.Path]::GetFileName(([Uri]$c.url).AbsolutePath))
+    # one cache folder per component: several downloads share a file name (Info.plist, config.plist)
+    $cDir = Join-Path $dlDir ($c.name -replace '[^\w.-]', '_')
+    New-Item -ItemType Directory -Force $cDir | Out-Null
+    $file = Join-Path $cDir ([IO.Path]::GetFileName(([Uri]$c.url).AbsolutePath))
     if ($Force -or -not (Test-Path $file)) {
         Write-Host "Downloading $($c.name) ..." -ForegroundColor Cyan
         Invoke-WebRequest -Uri $c.url -OutFile $file -UseBasicParsing

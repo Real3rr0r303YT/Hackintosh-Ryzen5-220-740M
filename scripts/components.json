@@ -107,6 +107,17 @@
       ]
     },
     {
+      "_comment": "Disables AppleMCEReporter (panics/hangs on AMD). Codeless kext from the working 7840HS EFI (upstream xlnc/AppleMCEReporterDisabler), pinned commit.",
+      "name": "AppleMCEReporterDisabler",
+      "url": "https://raw.githubusercontent.com/kevin8717/TongFang-7840HS-Hackintosh/6758dda39c6f3b29306cc7f97fe0e9969c4f69ab/EFI/OC/Kexts/AppleMCEReporterDisabler.kext/Contents/Info.plist",
+      "items": [
+        {
+          "pick": "Info.plist",
+          "to": "OC/Kexts/AppleMCEReporterDisabler.kext/Contents"
+        }
+      ]
+    },
+    {
       "name": "AMD_Vanilla",
       "url": "https://raw.githubusercontent.com/AMD-OSX/AMD_Vanilla/master/patches.plist",
       "items": [
