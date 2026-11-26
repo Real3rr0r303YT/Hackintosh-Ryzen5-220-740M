@@ -2,7 +2,10 @@ Radeon 740M GPU-Beschleunigung (RadeArc), auf dem Stick im Ordner RECOVERY/gpu
 
 Voraussetzung: macOS mit der EFI-GPU-accel starten (OpenCore auf der SSD, Eintrag "Macintosh HD").
 
-Installieren (Terminal in macOS):
+Am einfachsten nach einer frischen Installation: im Finder den Stick RECOVERY oeffnen
+und Hackintosh-Setup.command doppelklicken (GPU + Scrollrichtung, alles automatisch).
+
+Oder von Hand installieren (Terminal in macOS):
     bash /Volumes/RECOVERY/gpu/install-gpu.sh
   -> Stufe 1 (Metal fuer Apps) sofort, Neustart, dann installiert sich Stufe 2
      (Desktop auf der GPU, Liquid Glass) automatisch und meldet sich mit einem Fenster.

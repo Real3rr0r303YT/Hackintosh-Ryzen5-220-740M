@@ -98,7 +98,7 @@ powershell -ExecutionPolicy Bypass -File scripts\New-UsbInstaller.ps1 -DiskNumbe
 powershell -ExecutionPolicy Bypass -File scripts\New-UsbInstaller.ps1 -DiskNumber 1 -UpdateEfi -Source build\EFI-usb
 ```
 
-Both also write a **`gpu` folder** to the stick's RECOVERY partition (RadeArc package + `install-gpu.sh`, `gpu-reset.sh`, `LIESMICH.txt`), if `build\gpu\usb\pkg\radearc-package.zip` exists:
+Both also write a **`gpu` folder** to the stick's RECOVERY partition (RadeArc package + `install-gpu.sh`, `gpu-reset.sh`, `LIESMICH.txt`) and **`Hackintosh-Setup.command`** next to it, if `build\gpu\usb\pkg\radearc-package.zip` exists. After a fresh install (booted from the SSD with `EFI-GPU-accel`), double-click `Hackintosh-Setup.command` in Finder: it turns off natural scrolling and installs the GPU driver (stage 2 follows by itself after the next start; an existing install is updated).
 
 ```powershell
 gh release download package-latest -R Real3rr0r303YT/RadeArc -D build\gpu\usb\pkg
