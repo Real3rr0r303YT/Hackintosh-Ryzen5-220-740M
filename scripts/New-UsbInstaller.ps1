@@ -52,6 +52,8 @@ function Copy-GpuBundle([string]$letter) {
     New-Item -ItemType Directory -Force "$dst\pkg" | Out-Null
     foreach ($f in 'install-gpu.sh', 'stage2.sh', 'local.radearc.stage2.plist', 'gpu-reset.sh', 'LIESMICH.txt') { Copy-Item (Join-Path $PSScriptRoot "gpu\$f") $dst -Force }
     Copy-Item $zip "$dst\pkg\" -Force
+    # one double-click after a fresh install: Finder -> RECOVERY -> Hackintosh-Setup.command
+    Copy-Item (Join-Path $PSScriptRoot 'gpu\Hackintosh-Setup.command') "$($letter):\" -Force
     Write-Host "  GPU folder written: $dst (install-gpu.sh, gpu-reset.sh, RadeArc package)" -ForegroundColor Cyan
 }
 
