@@ -205,8 +205,8 @@ if ($aspmOff) {
 }
 
 # --- Kernel/Add  (Lilu first, then VirtualSMC, then plugins that depend on them)
-$disabledOnVM = 'AppleALC', 'NVMeFix', 'BlueToolFixup', 'RealtekBluetoothFirmware', 'RealtekRTL8111', 'AMDRyzenCPUPowerManagement', 'SMCAMDProcessor', 'AirportRTW', 'PhxXhciKick'
-$order = 'Lilu', 'AMFIPass', 'VirtualSMC', 'AMDRyzenCPUPowerManagement', 'SMCAMDProcessor'
+$disabledOnVM = 'AppleALC', 'SimpleHDA', 'NVMeFix', 'BlueToolFixup', 'RealtekBluetoothFirmware', 'RealtekRTL8111', 'AMDRyzenCPUPowerManagement', 'SMCAMDProcessor', 'AirportRTW', 'PhxXhciKick'
+$order = 'Lilu', 'AMFIPass', 'VirtualSMC', 'AMDRyzenCPUPowerManagement', 'SMCAMDProcessor', 'AppleALC', 'SimpleHDA'
 $kexts = Get-ChildItem (Join-Path $outEfi 'OC\Kexts') -Directory -Filter *.kext |
          Sort-Object @{ e = { $i = [array]::IndexOf($order, (KextName $_)); if ($i -lt 0) { 99 } else { $i } } }, Name
 Clear-Node 'Kernel/Add'; Clear-Node 'Kernel/Block'; Clear-Node 'Kernel/Force'
@@ -294,7 +294,7 @@ Add-Item 'Misc/Tools' ([ordered]@{
 # --- NVRAM
 $apple = '7C436110-AB2A-4BBB-A880-FE41995C9F82'
 # ipc_control_port_options=0: from the working 7840HS config (avoids hangs/crashes on Tahoe)
-$bootArgs = if ($Target -eq 'VM') { '-v keepsyms=1 debug=0x100' } else { "-v keepsyms=1 debug=0x100 alcid=$AlcLayout ipc_control_port_options=0" }
+$bootArgs = if ($Target -eq 'VM') { '-v keepsyms=1 debug=0x100' } else { "-v keepsyms=1 debug=0x100 alcid=$AlcLayout shda-lang=de ipc_control_port_options=0" }
 # phxdebug=1: RadeArc logging. Deliberately NO -phxp2 yet: without it PhxBringup only READS the GPU (Test A).
 if ($Target -eq 'Gpu') { $bootArgs += ' phxdebug=1' }
 # AirportRTW (Wi-Fi) on Tahoe: relax AMFI like the working 7840HS config, set the regulatory

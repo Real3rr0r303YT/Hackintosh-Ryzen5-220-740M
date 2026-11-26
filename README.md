@@ -17,7 +17,7 @@ OpenCore EFI for the **ASUS V500 Mini Tower (VM501MH / board PM500MH)** with **A
 | Ethernet | Realtek RTL8111 (GbE) | `10EC:8168` |
 | Wi-Fi | Realtek RTL8852BE (Wi-Fi 6) | `10EC:B852` |
 | Bluetooth | Realtek (on RTL8852BE, USB) | `USB 0489:E123` |
-| Audio | Realtek ALC897 | `HDA 10EC:0897` |
+| Audio | 🧪 | macOS Tahoe has no `AppleHDA` any more: [SimpleHDA](https://github.com/laobamac/SimpleHDA) 1.0.2 (audited, release = CI build) injects it through OpenCore, + AppleALC layout 11 (ALC897), `shda-lang=de`. No system volume change. Testing |
 | USB | 4× AMD xHCI | `1022:15BB`, `15BD`, `15C2`, `15C3` |
 | Display out | HDMI 2.1 / DisplayPort 1.4 (from iGPU) | – |
 
@@ -161,7 +161,7 @@ Docs: [Hardware](docs/HARDWARE.md) · [Kexts](docs/KEXTS.md) · [BIOS](docs/BIOS
 
 ## Credits
 
-[Acidanthera](https://github.com/acidanthera) (OpenCore, Lilu, VirtualSMC, AppleALC, BrcmPatchRAM/BlueToolFixup …) · [AMD-OSX](https://github.com/AMD-OSX) (AMD Vanilla patches) · [kevin8717/TongFang-7840HS-Hackintosh](https://github.com/kevin8717/TongFang-7840HS-Hackintosh) (PhxXhciKick, SSDT-PLUG-ALT, Phoenix booter quirks, 26.4+ patches) · [nullarc](https://github.com/luuumi-dev/nullarc) / [RadeArc](https://github.com/Kreytus/RadeArc) (740M acceleration) · [AirportRTW](https://github.com/souissiak1-maker/AirportRTW) by souissiak1-maker (Realtek Wi-Fi) · RealtekBluetoothFirmware by thegwchr (mirrored by [yan-ad](https://github.com/yan-ad/bt-realtek)) · [OpenCore-Legacy-Patcher](https://github.com/dortania/OpenCore-Legacy-Patcher) by dortania (AMFIPass) · [Dortania guides](https://dortania.github.io/OpenCore-Install-Guide/)
+[Acidanthera](https://github.com/acidanthera) (OpenCore, Lilu, VirtualSMC, AppleALC, BrcmPatchRAM/BlueToolFixup …) · [AMD-OSX](https://github.com/AMD-OSX) (AMD Vanilla patches) · [kevin8717/TongFang-7840HS-Hackintosh](https://github.com/kevin8717/TongFang-7840HS-Hackintosh) (PhxXhciKick, SSDT-PLUG-ALT, Phoenix booter quirks, 26.4+ patches) · [nullarc](https://github.com/luuumi-dev/nullarc) / [RadeArc](https://github.com/Kreytus/RadeArc) (740M acceleration) · [AirportRTW](https://github.com/souissiak1-maker/AirportRTW) by souissiak1-maker (Realtek Wi-Fi) · RealtekBluetoothFirmware by thegwchr (mirrored by [yan-ad](https://github.com/yan-ad/bt-realtek)) · [SimpleHDA](https://github.com/laobamac/SimpleHDA) by laobamac (AppleHDA on Tahoe) · [OpenCore-Legacy-Patcher](https://github.com/dortania/OpenCore-Legacy-Patcher) by dortania (AMFIPass) · [Dortania guides](https://dortania.github.io/OpenCore-Install-Guide/)
 
 ## License
 

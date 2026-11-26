@@ -181,6 +181,18 @@
       ]
     },
     {
+      "_comment": "Brings AppleHDA back on macOS Tahoe (removed by Apple) via OpenCore injection, no system volume change. Audited 2026-11-26; release zip is byte-identical to the CI artifact of run 45039399733 (commit 3596c76). Load order Lilu, AppleALC, SimpleHDA; needs DisableLinkeditJettison.",
+      "name": "SimpleHDA",
+      "url": "https://github.com/laobamac/SimpleHDA/releases/download/v1.0.2/SimpleHDA-Tahoe-v1.0.2-RELEASE.zip",
+      "sha256": "4e24a54ea58bc8196c517bd415b263313512832b6e28c455b97e18490a6230f0",
+      "items": [
+        {
+          "pick": "SimpleHDA.kext",
+          "to": "OC/Kexts"
+        }
+      ]
+    },
+    {
       "name": "NVMeFix",
       "url": "https://github.com/acidanthera/NVMeFix/releases/download/1.1.3/NVMeFix-1.1.3-RELEASE.zip",
       "items": [
