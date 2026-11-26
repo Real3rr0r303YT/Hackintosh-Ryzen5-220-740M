@@ -57,6 +57,10 @@ foreach ($c in $manifest.components) {
     } else {
         Write-Host "Cached      $($c.name)"
     }
+    if ($c.sha256) {
+        $h = (Get-FileHash $file -Algorithm SHA256).Hash.ToLower()
+        if ($h -ne $c.sha256.ToLower()) { Remove-Item $file -Force; throw "$($c.name): SHA-256 mismatch ($h), download deleted." }
+    }
 
     if ($file -like '*.zip') {
         $src = Join-Path $xDir $c.name
