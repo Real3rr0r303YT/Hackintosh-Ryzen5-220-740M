@@ -57,7 +57,7 @@
 			<array>
 				<dict>
 					<key>Address</key>
-					<integer>-32833536</integer>
+					<integer>4262133760</integer>
 					<key>Comment</key>
 					<string></string>
 					<key>Enabled</key>
@@ -65,7 +65,7 @@
 				</dict>
 				<dict>
 					<key>Address</key>
-					<integer>-19922944</integer>
+					<integer>4275044352</integer>
 					<key>Comment</key>
 					<string></string>
 					<key>Enabled</key>
@@ -73,7 +73,7 @@
 				</dict>
 				<dict>
 					<key>Address</key>
-					<integer>-19660800</integer>
+					<integer>4275306496</integer>
 					<key>Comment</key>
 					<string></string>
 					<key>Enabled</key>
@@ -81,7 +81,7 @@
 				</dict>
 				<dict>
 					<key>Address</key>
-					<integer>-19398656</integer>
+					<integer>4275568640</integer>
 					<key>Comment</key>
 					<string></string>
 					<key>Enabled</key>
@@ -89,7 +89,7 @@
 				</dict>
 				<dict>
 					<key>Address</key>
-					<integer>-19136512</integer>
+					<integer>4275830784</integer>
 					<key>Comment</key>
 					<string></string>
 					<key>Enabled</key>
@@ -97,7 +97,7 @@
 				</dict>
 				<dict>
 					<key>Address</key>
-					<integer>-18874368</integer>
+					<integer>4276092928</integer>
 					<key>Comment</key>
 					<string></string>
 					<key>Enabled</key>
@@ -105,7 +105,7 @@
 				</dict>
 				<dict>
 					<key>Address</key>
-					<integer>-16777216</integer>
+					<integer>4278190080</integer>
 					<key>Comment</key>
 					<string></string>
 					<key>Enabled</key>
@@ -165,18 +165,7 @@
 		<key>DeviceProperties</key>
 		<dict>
 			<key>Add</key>
-			<dict>
-				<key>PciRoot(0x0)/Pci(0x2,0x2)</key>
-				<dict>
-					<key>pci-aspm-default</key>
-					<data>AAAAAA==</data>
-				</dict>
-				<key>PciRoot(0x0)/Pci(0x2,0x2)/Pci(0x0,0x0)</key>
-				<dict>
-					<key>pci-aspm-default</key>
-					<data>AAAAAA==</data>
-				</dict>
-			</dict>
+			<dict></dict>
 			<key>Delete</key>
 			<dict />
 		</dict>
@@ -303,6 +292,24 @@
 					<true />
 					<key>ExecutablePath</key>
 					<string>Contents/MacOS/AppleALC</string>
+					<key>MaxKernel</key>
+					<string></string>
+					<key>MinKernel</key>
+					<string></string>
+					<key>PlistPath</key>
+					<string>Contents/Info.plist</string>
+				</dict>
+				<dict>
+					<key>Arch</key>
+					<string>Any</string>
+					<key>BundlePath</key>
+					<string>AppleMCEReporterDisabler.kext</string>
+					<key>Comment</key>
+					<string>AppleMCEReporterDisabler</string>
+					<key>Enabled</key>
+					<true />
+					<key>ExecutablePath</key>
+					<string></string>
 					<key>MaxKernel</key>
 					<string></string>
 					<key>MinKernel</key>
@@ -1436,7 +1443,7 @@
 				<key>IncreasePciBarSize</key>
 				<false />
 				<key>LapicKernelPanic</key>
-				<false />
+				<true />
 				<key>LegacyCommpage</key>
 				<false />
 				<key>PanicNoKextDump</key>
@@ -1607,7 +1614,7 @@
 					<key>SystemAudioVolume</key>
 					<data>Rg==</data>
 					<key>boot-args</key>
-					<string>-v keepsyms=1 debug=0x100 alcid=11 ipc_control_port_options=0 -amfipassbeta amfi=0x80 itlwm_cc=DE -rtwpoll</string>
+					<string>-v keepsyms=1 debug=0x100 alcid=11 ipc_control_port_options=0 -amfipassbeta amfi=0x80 itlwm_cc=DE</string>
 					<key>csr-active-config</key>
 					<data>AAAAAA==</data>
 					<key>prev-lang:kbd</key>

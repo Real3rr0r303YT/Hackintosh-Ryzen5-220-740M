@@ -20,6 +20,7 @@ param(
     [Parameter(Mandatory)] [int]$DiskNumber,
     [switch]$UpdateEfi,   # only replace EFI on partition 1 of an already prepared stick (keeps the recovery)
     [string]$Source,      # EFI folder to write (default build\EFI), e.g. build\EFI-wifi-poll
+    [switch]$LogsOnly,    # with -UpdateEfi: only copy opencore-*.txt / panic-*.txt to build\usb-logs, change nothing
     [string]$Root
 )
 
@@ -54,7 +55,14 @@ if ($UpdateEfi) {
         foreach ($i in 1..30) { $l = (Get-Partition -DiskNumber $DiskNumber -PartitionNumber 1).DriveLetter; if ($l -and $l -ne [char]0 -and (Test-Path "$($l):\")) { break }; Start-Sleep -Milliseconds 500 }
         if (-not (Test-Path "$($l):\")) { throw 'EFI partition got no drive letter.' }
         $logs = Join-Path $Root 'build\usb-logs'; New-Item -ItemType Directory -Force $logs | Out-Null
-        Get-ChildItem "$($l):\" -Filter 'opencore-*.txt' -ErrorAction SilentlyContinue | ForEach-Object { Copy-Item $_.FullName $logs -Force; "  saved log: build\usb-logs\$($_.Name)" }
+        foreach ($pat in 'opencore-*.txt', 'panic-*.txt') {
+            Get-ChildItem "$($l):\" -Filter $pat -ErrorAction SilentlyContinue | ForEach-Object { Copy-Item $_.FullName $logs -Force; "  saved log: build\usb-logs\$($_.Name)" }
+        }
+        if ($LogsOnly) {
+            Remove-PartitionAccessPath -DiskNumber $DiskNumber -PartitionNumber 1 -AccessPath "$($l):\" -ErrorAction SilentlyContinue
+            Write-Host "`nLogs saved to build\usb-logs (EFI unchanged)." -ForegroundColor Green
+            return
+        }
         $before = if (Test-Path "$($l):\EFI\OC\OpenCore.efi") { 'OpenCore was present' } else { 'NO OpenCore found on the stick before the update' }
         Write-Host "  $before" -ForegroundColor Yellow
         if (Test-Path "$($l):\EFI") { Remove-Item "$($l):\EFI" -Recurse -Force }

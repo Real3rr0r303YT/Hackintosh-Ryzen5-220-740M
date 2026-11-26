@@ -32,6 +32,12 @@ param(
     [string]$OutName,        # write to build\<OutName> instead of build\EFI (test variants side by side)
     [string]$ExtraBootArgs,  # appended to boot-args (e.g. '-rtwpoll')
     [switch]$WifiAspmOff,    # DeviceProperties pci-aspm-default=0 on the Wi-Fi card + its root port
+    [string[]]$DisableKexts, # extra kexts to load disabled, e.g. NVMeFix
+    [switch]$NvmeAspmOff,    # DeviceProperties pci-aspm-default=0 on the NVMe SSD + its root port
+    [switch]$DropIvrs,       # ACPI/Delete the IVRS table (hide the AMD IOMMU when the BIOS can't disable it)
+    # SIP off for runtime kext loading (scripts/recovery-debug.sh): csr-active-config 0xFEF
+    # (incl. 0x1 untrusted + 0x200 unapproved kexts) and AMFI relaxed (amfi=0x80). Debug only.
+    [switch]$SipOff,
     [string]$Root
 )
 
@@ -138,6 +144,13 @@ Clear-Node 'ACPI/Add'; Clear-Node 'ACPI/Delete'; Clear-Node 'ACPI/Patch'
 foreach ($aml in Get-ChildItem (Join-Path $outEfi 'OC\ACPI') -Filter *.aml) {
     Add-Item 'ACPI/Add' ([ordered]@{ Comment = $aml.BaseName; Enabled = $true; Path = $aml.Name })
 }
+if ($DropIvrs) {
+    # Hide the AMD IOMMU (IVRS table) from macOS - the BIOS of this ASUS V500 can't turn IOMMU off
+    Add-Item 'ACPI/Delete' ([ordered]@{
+        All = $false; Comment = 'Drop IVRS (AMD IOMMU)'; Enabled = $true
+        OemTableId = (HexBytes '0000000000000000'); TableLength = 0; TableSignature = (AsciiBytes 'IVRS')
+    })
+}
 
 # --- Booter (Dortania AMD Zen, 2020+ firmware)
 Clear-Node 'Booter/MmioWhitelist'; Clear-Node 'Booter/Patch'
@@ -165,16 +178,25 @@ if ($Target -ne 'VM') {
         0xFED80000 = 'AMD FCH AcpiMmio / PMIO / SMI'; 0xFEDC0000 = 'AMD FCH UART / I2C / AOAC'
         0xFEE00000 = 'LAPIC MMIO'; 0xFF000000 = 'SPI Flash ROM (NVRAM runtime)'
     }
-    foreach ($a in $mmio.Keys) { Add-Item 'Booter/MmioWhitelist' ([ordered]@{ Address = [long]$a; Comment = $mmio[$a]; Enabled = $true }) }
+    # PS 5.1 parses 0xFE0B0000 as a negative Int32: reinterpret the 32 bits as unsigned before widening,
+    # otherwise the plist gets e.g. -32833536 and OpenCore whitelists nothing.
+    foreach ($a in $mmio.Keys) {
+        $addr = [long][BitConverter]::ToUInt32([BitConverter]::GetBytes([int]$a), 0)
+        Add-Item 'Booter/MmioWhitelist' ([ordered]@{ Address = $addr; Comment = $mmio[$a]; Enabled = $true })
+    }
 }
 
 # --- DeviceProperties
 Clear-Node 'DeviceProperties/Add'; Clear-Node 'DeviceProperties/Delete'
-if ($WifiAspmOff) {
-    # RTL8852BE (PCIROOT(0)#PCI(0202)#PCI(0000) in Windows) and its AMD root port:
-    # keep the PCIe link out of ASPM L0s/L1 - the card froze the machine when the first scan started.
+# Keep PCIe links out of ASPM L0s/L1 (pci-aspm-default=0) on a device and its AMD root port.
+$aspmOff = @()
+# RTL8852BE (Windows: PCIROOT(0)#PCI(0202)#PCI(0000)) froze the machine when the first scan started
+if ($WifiAspmOff) { $aspmOff += 'PciRoot(0x0)/Pci(0x2,0x2)', 'PciRoot(0x0)/Pci(0x2,0x2)/Pci(0x0,0x0)' }
+# NVMe 1CC4:6B03 (Windows: PCIROOT(0)#PCI(0102)#PCI(0000)) - test for the hang during the install
+if ($NvmeAspmOff) { $aspmOff += 'PciRoot(0x0)/Pci(0x1,0x2)', 'PciRoot(0x0)/Pci(0x1,0x2)/Pci(0x0,0x0)' }
+if ($aspmOff) {
     $dpAdd = Get-Val $top 'DeviceProperties/Add'
-    foreach ($p in 'PciRoot(0x0)/Pci(0x2,0x2)', 'PciRoot(0x0)/Pci(0x2,0x2)/Pci(0x0,0x0)') {
+    foreach ($p in $aspmOff) {
         $ke = $doc.CreateElement('key'); $ke.InnerText = $p
         [void]$dpAdd.AppendChild($ke)
         [void]$dpAdd.AppendChild((New-Dict ([ordered]@{ 'pci-aspm-default' = (HexBytes '00000000') })))
@@ -197,6 +219,7 @@ foreach ($k in $kexts) {
     if ((KextName $k) -in 'AMDRyzenCPUPowerManagement', 'SMCAMDProcessor') { $enabled = $false }
     if ($NoWireless -and (KextName $k) -in 'AirportRTW', 'BlueToolFixup', 'RealtekBluetoothFirmware') { $enabled = $false }
     if ($NoBluetooth -and (KextName $k) -in 'BlueToolFixup', 'RealtekBluetoothFirmware') { $enabled = $false }
+    if ($DisableKexts -and (KextName $k) -in $DisableKexts) { $enabled = $false }
     Add-Item 'Kernel/Add' ([ordered]@{
         Arch = 'Any'; BundlePath = $k.Name; Comment = (KextName $k); Enabled = $enabled
         ExecutablePath = $exe; MaxKernel = ''; MinKernel = $(if ((KextName $k) -eq 'PhxBringup') { '25.0.0' } else { '' }); PlistPath = 'Contents/Info.plist'
@@ -231,6 +254,7 @@ $kq = [ordered]@{
     AppleCpuPmCfgLock = $false; AppleXcpmCfgLock = $false; DisableIoMapper = $false
     DisableLinkeditJettison = $true; PanicNoKextDump = $true; PowerTimeoutKernelPanic = $true
     ProvideCurrentCpuInfo = $true; XhciPortLimit = $false
+    LapicKernelPanic = $true   # as in the working 7840HS config (Zen 4)
 }
 foreach ($k in $kq.Keys) { Set-Val "Kernel/Quirks/$k" $kq[$k] }
 
@@ -278,8 +302,23 @@ if ($Target -ne 'VM' -and -not $NoWireless) {
     }
 }
 if ($ExtraBootArgs) { $bootArgs += " $ExtraBootArgs" }
+# csr-active-config is a little-endian UInt32 as Data: <EF0F0000> = 0x00000FEF (like <03080000> = 0x803).
+# 0xFEF = every SIP bit up to 0x800 except 0x10 (APPLE_INTERNAL), i.e. includes
+# 0x1 ALLOW_UNTRUSTED_KEXTS and 0x200 ALLOW_UNAPPROVED_KEXTS needed by `kmutil load`.
+$csr = '00000000'
+if ($SipOff) {
+    $csr = 'EF0F0000'
+    # the ad-hoc signed AirportRTW also needs AMFI relaxed (-NoWireless drops these args above)
+    if ($bootArgs -notmatch 'amfi=0x80') { $bootArgs += ' -amfipassbeta amfi=0x80' }
+    Write-Host "SIP off: csr-active-config = $csr (0x00000FEF)" -ForegroundColor Yellow
+}
 Set-Val "NVRAM/Add/$apple/boot-args" $bootArgs
-Set-Val "NVRAM/Add/$apple/csr-active-config" (HexBytes '00000000')
+Set-Val "NVRAM/Add/$apple/csr-active-config" (HexBytes $csr)
+# NVRAM/Add never overwrites an existing variable: delete it first, so switching between a
+# -SipOff EFI and a normal one really changes SIP (and the normal EFI turns it back on).
+if (-not (Get-Val $top "NVRAM/Delete/$apple").SelectSingleNode("string[.='csr-active-config']")) {
+    Add-Item "NVRAM/Delete/$apple" 'csr-active-config'
+}
 Set-Val "NVRAM/Add/$apple/prev-lang:kbd" (AsciiBytes 'de-DE:3')
 Set-Val 'NVRAM/WriteFlash' $true
 
@@ -320,7 +359,7 @@ function Save-Plist([string]$path) {
     $w = [Xml.XmlWriter]::Create($path, $settings); $doc.Save($w); $w.Close()
 }
 
-if ($Target -eq 'Hardware') {
+if ($Target -eq 'Hardware' -and -not $SipOff) {   # the repo sample keeps SIP on
     $sample = Join-Path $Root 'EFI\OC\config.sample.plist'
     New-Item -ItemType Directory -Force (Split-Path $sample) | Out-Null
     Save-Plist $sample
