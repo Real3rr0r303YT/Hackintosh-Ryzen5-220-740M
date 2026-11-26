@@ -2,7 +2,7 @@
 
 OpenCore EFI for the **ASUS V500 Mini Tower (VM501MH / board PM500MH)** with **AMD Ryzen 5 220** and **Radeon 740M** iGPU, running **macOS Tahoe 26**.
 
-> ⚠️ **Work in progress.** The macOS Tahoe 26.6 installer/recovery boots to the GUI on the real hardware (mouse + keyboard work). Wi-Fi does not work yet (the driver loads but hangs the installer; fix in progress). Current plan: boot the installer without Wi-Fi/Bluetooth (`-NoWireless`) and get internet via iPhone USB tethering (being tested), with an offline full installer as fallback. Use at your own risk and back up your data first.
+> ⚠️ **Work in progress (as of 2026-11-26).** The macOS Tahoe 26.6 installer/recovery boots to the GUI on the real hardware with `-NoWireless` (fast, mouse + keyboard work). Wi-Fi and Bluetooth are still experimental and are left out during the install. macOS is now being installed **offline** from Apple's full installer package ([docs/OFFLINE-INSTALL.md](docs/OFFLINE-INSTALL.md)); Wi-Fi, Bluetooth and GPU acceleration are tested after that. Use at your own risk and back up your data first.
 
 ## Hardware
 
@@ -33,17 +33,18 @@ Full details: [docs/HARDWARE.md](docs/HARDWARE.md)
 | CPU init after CoreAnalyticsHub | ✅ | Needed `SSDT-PLUG-ALT` (cores are ACPI0007 devices) |
 | Kernel → launchd userspace | ✅ | |
 | Display via HDMI (no acceleration) | ✅ | Firmware framebuffer (GOP) |
-| Installer GUI (language picker, reinstall menu) | ✅ | Needed `PhxXhciKick.kext` (Zen 4 xHCI interrupt fix, from [kevin8717/TongFang-7840HS-Hackintosh](https://github.com/kevin8717/TongFang-7840HS-Hackintosh), MIT) + temporarily `-NoWireless -NoBluetooth` |
-| USB mouse + keyboard | ✅ | Work in the installer with `PhxXhciKick` |
-| Wi-Fi | 🧪 | **Patch in testing.** Stock AirportRTW (+ `AMFIPass.kext`) detects the card but freezes the Tahoe recovery: its RTW89 backend uses the legacy INTx interrupt, which is misrouted on AMD. Our fork [Real3rr0r303YT/AirportRTW](https://github.com/Real3rr0r303YT/AirportRTW/tree/fix/zen4-msi-poll) prefers MSI (INTx fallback) and adds `-rtwpoll` / `-rtwintx` / `rtwirq=N`. MSI fixed the power-on freeze; the first scan still froze until PCIe ASPM was turned off (survives 3 scans). The driver now clears ASPM/L1SS/CLKREQ itself; next test after install. Results: [docs/WIFI-TEST.md](docs/WIFI-TEST.md) |
-| Bluetooth | 🧪 | `RealtekBluetoothFirmware.kext` 1.0.2 (has `0489:E123`, firmware bundled; upstream deleted, built from our audited fork [Real3rr0r303YT/RealtekBluetoothFirmware](https://github.com/Real3rr0r303YT/RealtekBluetoothFirmware)) + BlueToolFixup. Disabled for the installer, enable after install |
-| Ethernet / Audio | 🔲 | RealtekRTL8111 / AppleALC inject OK; LAN untested (no cable available) |
-| macOS installation | 🔲 | Next step: **offline install** from the full `InstallAssistant.pkg` (Tahoe 26.6.2) on an exFAT partition, installer booted without Wi-Fi/BT. See [docs/OFFLINE-INSTALL.md](docs/OFFLINE-INSTALL.md) |
-| GPU acceleration (740M) | 🧪 | [RadeArc fork](https://github.com/Real3rr0r303YT/RadeArc) with PCI ID `1901` built; test after install, see [docs/GPU.md](docs/GPU.md) |
+| Installer GUI (language picker, reinstall menu) | ✅ | Built with `-NoWireless`, boots to the GUI very fast. Needed `PhxXhciKick.kext` (Zen 4 xHCI interrupt fix, from [kevin8717/TongFang-7840HS-Hackintosh](https://github.com/kevin8717/TongFang-7840HS-Hackintosh), MIT) |
+| USB / keyboard / mouse | ✅ | Work in the installer with `PhxXhciKick` |
+| Wi-Fi | 🧪 | Stock AirportRTW (+ `AMFIPass.kext`) froze the recovery when the card powered on. Our fork [Real3rr0r303YT/AirportRTW `fix/zen4-msi-poll`](https://github.com/Real3rr0r303YT/AirportRTW/tree/fix/zen4-msi-poll) uses MSI instead of INTx: that fixed the power-on freeze, but the first scan still froze (both in MSI and `-rtwpoll` mode). With PCIe ASPM disabled it survived 3 scans. The driver now clears ASPM / L1SS / CLKREQ itself (untested); next test after install. Results: [docs/WIFI-TEST.md](docs/WIFI-TEST.md) |
+| Bluetooth | 🧪 | `RealtekBluetoothFirmware.kext` 1.0.2 (has `0489:E123`, firmware bundled), built from our audited fork [Real3rr0r303YT/RealtekBluetoothFirmware](https://github.com/Real3rr0r303YT/RealtekBluetoothFirmware), + BlueToolFixup. Off during the install, enabled afterwards |
+| Ethernet (LAN) | 🔲 | RealtekRTL8111 injected; untested (no cable available) |
+| Audio | 🔲 | AppleALC (layout 11) injected; untested |
+| GPU acceleration (740M) | ⚗ | [RadeArc fork](https://github.com/Real3rr0r303YT/RadeArc) with PCI ID `1901` built; tested after install, see [docs/GPU.md](docs/GPU.md) |
+| macOS installation | 🔲 | **In progress** via the offline installer (full `InstallAssistant.pkg`, Tahoe 26.6.2, no internet needed), see [docs/OFFLINE-INSTALL.md](docs/OFFLINE-INSTALL.md) |
 | USB mapping / sleep | 🔲 | after install |
 | VirtualBox VM test | ❌ | reaches the macOS kernel, hangs at `EXITBS:START` under Hyper-V "snail mode" |
 
-Legend: ✅ works · 🟡 partly · 🧪 experimental · ❌ doesn't work · 🔲 not tested
+Legend: ✅ works · 🟡 partly · 🧪 in testing · ⚗ experimental, planned after install · ❌ doesn't work · 🔲 not tested / in progress
 
 ## Build the EFI
 
@@ -53,9 +54,8 @@ No ready-made EFI with third-party files is stored here. A script downloads the 
 # real PC (generates your personal SMBIOS once, kept in smbios.local.json)
 powershell -ExecutionPolicy Bypass -File scripts\Build-EFI.ps1 -Target Hardware -NewSmbios -DebugOpenCore
 
-# debugging: -NoWireless / -NoBluetooth leave out AirportRTW + BlueToolFixup / only BlueToolFixup (AMFIPass always stays)
-# AMFIPass.kext 1.4.1 (pinned, from dortania/OpenCore-Legacy-Patcher payloads) loads right after Lilu;
-# AirportRTW requires it on Sequoia/Tahoe
+# installer EFI without Wi-Fi/Bluetooth (used for the offline install)
+powershell -ExecutionPolicy Bypass -File scripts\Build-EFI.ps1 -Target Hardware -DebugOpenCore -NoWireless -OutName EFI-nowifi
 
 # GPU test EFI = Hardware + RadeArc PhxBringup (read-only)
 powershell -ExecutionPolicy Bypass -File scripts\Build-EFI.ps1 -Target Gpu -DebugOpenCore
@@ -64,7 +64,24 @@ powershell -ExecutionPolicy Bypass -File scripts\Build-EFI.ps1 -Target Gpu -Debu
 powershell -ExecutionPolicy Bypass -File scripts\Build-EFI.ps1 -Target VM
 ```
 
-Result: `build\EFI`, `build\EFI-GPU` or `build\EFI-VM`, checked with `ocvalidate`.
+`Build-EFI.ps1` switches:
+
+| Switch | Effect |
+|---|---|
+| `-Target Hardware\|Gpu\|VM` | real PC (default), + RadeArc PhxBringup, or VirtualBox VM |
+| `-DebugOpenCore` | DEBUG OpenCore with on-screen log (always on for `VM`) |
+| `-NoWireless` | leave out AirportRTW and the Bluetooth kexts (`AMFIPass` always stays) |
+| `-NoBluetooth` | leave out only the Bluetooth kexts (Wi-Fi stays) |
+| `-AirportRtwPath <kext>` | use this `AirportRTW.kext` (e.g. a CI debug build of the fork) instead of the pinned release |
+| `-OutName <name>` | write to `build\<name>` instead of `build\EFI` (test variants side by side) |
+| `-ExtraBootArgs '<args>'` | append to boot-args (e.g. `'-rtwpoll'`) |
+| `-WifiAspmOff` | DeviceProperties `pci-aspm-default=0` on the Wi-Fi card and its root port |
+| `-SkipFetch` | reuse the downloads from a previous run |
+| `-NewSmbios` | generate `smbios.local.json` if it doesn't exist yet |
+
+`AMFIPass.kext` 1.4.1 (pinned, from dortania/OpenCore-Legacy-Patcher payloads) loads right after Lilu; AirportRTW requires it on Sequoia/Tahoe.
+
+Result: `build\EFI`, `build\EFI-GPU`, `build\EFI-VM` or `build\<OutName>`, checked with `ocvalidate`.
 
 ## USB installer
 
@@ -74,9 +91,12 @@ powershell -ExecutionPolicy Bypass -File scripts\New-UsbInstaller.ps1 -DiskNumbe
 
 # later: only replace the EFI, keep the recovery (also saves the OpenCore logs to build\usb-logs)
 powershell -ExecutionPolicy Bypass -File scripts\New-UsbInstaller.ps1 -DiskNumber 1 -UpdateEfi
+
+# write a specific EFI variant (default build\EFI)
+powershell -ExecutionPolicy Bypass -File scripts\New-UsbInstaller.ps1 -DiskNumber 1 -UpdateEfi -Source build\EFI-nowifi
 ```
 
-The recovery comes from Apple via `macrecovery.py` (see [docs/VM-TEST.md](docs/VM-TEST.md), step 2). BIOS settings: [docs/BIOS.md](docs/BIOS.md).
+The recovery comes from Apple via `macrecovery.py` (see [docs/VM-TEST.md](docs/VM-TEST.md), step 2). BIOS settings: [docs/BIOS.md](docs/BIOS.md). Offline install from the recovery: [docs/OFFLINE-INSTALL.md](docs/OFFLINE-INSTALL.md).
 
 ## Repository layout
 
@@ -88,11 +108,15 @@ scripts/
   Build-EFI.ps1        generates config.plist (AMD patches, quirks, kexts) + ocvalidate
   New-UsbInstaller.ps1 writes EFI + recovery to a USB stick
   New-TestVM.ps1       VirtualBox test VM
+  offline-install.sh   offline macOS install from InstallAssistant.pkg (run in the recovery)
   read_fat_logs.py     reads OpenCore logs out of a FAT32 disk image
 docs/
-  HARDWARE.md  KEXTS.md  BIOS.md  INSTALL.md  POST-INSTALL.md  GPU.md  VM-TEST.md
+  HARDWARE.md  KEXTS.md  BIOS.md  INSTALL.md  OFFLINE-INSTALL.md  POST-INSTALL.md
+  WIFI-TEST.md  GPU.md  VM-TEST.md
 build/                 output (git-ignored)
 ```
+
+Docs: [Hardware](docs/HARDWARE.md) · [Kexts](docs/KEXTS.md) · [BIOS](docs/BIOS.md) · [Install](docs/INSTALL.md) · [Offline install](docs/OFFLINE-INSTALL.md) · [Post-install](docs/POST-INSTALL.md) · [Wi-Fi test](docs/WIFI-TEST.md) · [GPU](docs/GPU.md) · [VM test](docs/VM-TEST.md)
 
 ## Important
 
@@ -102,7 +126,7 @@ build/                 output (git-ignored)
 
 ## Credits
 
-[Acidanthera](https://github.com/acidanthera) (OpenCore, Lilu, VirtualSMC, AppleALC …) · [AMD-OSX](https://github.com/AMD-OSX) (AMD Vanilla patches) · [kevin8717/TongFang-7840HS-Hackintosh](https://github.com/kevin8717/TongFang-7840HS-Hackintosh) (Phoenix booter quirks, SSDT-PLUG-ALT, 26.4+ patches) · [nullarc](https://github.com/luuumi-dev/nullarc) / [RadeArc](https://github.com/Kreytus/RadeArc) · [AirportRTW](https://github.com/souissiak1-maker/AirportRTW) · [OpenCore-Legacy-Patcher](https://github.com/dortania/OpenCore-Legacy-Patcher) (AMFIPass) · [Dortania guides](https://dortania.github.io/OpenCore-Install-Guide/)
+[Acidanthera](https://github.com/acidanthera) (OpenCore, Lilu, VirtualSMC, AppleALC, BrcmPatchRAM/BlueToolFixup …) · [AMD-OSX](https://github.com/AMD-OSX) (AMD Vanilla patches) · [kevin8717/TongFang-7840HS-Hackintosh](https://github.com/kevin8717/TongFang-7840HS-Hackintosh) (PhxXhciKick, SSDT-PLUG-ALT, Phoenix booter quirks, 26.4+ patches) · [nullarc](https://github.com/luuumi-dev/nullarc) / [RadeArc](https://github.com/Kreytus/RadeArc) (740M acceleration) · [AirportRTW](https://github.com/souissiak1-maker/AirportRTW) by souissiak1-maker (Realtek Wi-Fi) · RealtekBluetoothFirmware by thegwchr (mirrored by [yan-ad](https://github.com/yan-ad/bt-realtek)) · [OpenCore-Legacy-Patcher](https://github.com/dortania/OpenCore-Legacy-Patcher) by dortania (AMFIPass) · [Dortania guides](https://dortania.github.io/OpenCore-Install-Guide/)
 
 ## License
 
