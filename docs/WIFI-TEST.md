@@ -18,6 +18,23 @@ Fork: [Real3rr0r303YT/AirportRTW `fix/zen4-msi-poll`](https://github.com/Real3rr
 
 The kext logs `AirportRTW-RTW89: interrupt index N` early in the verbose boot.
 
+## Results on real hardware (2026-11-26)
+
+| EFI | Result |
+|---|---|
+| stock AirportRTW (INTx) | freezes when the card powers on |
+| `EFI-wifi-msi` (MSI) | card starts, firmware loads; hard freeze at the first `IO80211ScanManager::startScan` |
+| `EFI-wifi-poll` (`-rtwpoll`) | same freeze at the first scan, so interrupts are not the only cause |
+| `EFI-wifi-poll-aspm` (+ `pci-aspm-default=0` via DeviceProperties) | survives 3 scans, then freezes |
+| `EFI-wifi-full` (driver clears ASPM L0s/L1, L1 PM substates and CLKREQ on the card and its root port; `-rtwaspm` keeps them) | built, not tested yet (planned after install) |
+
+Current theory: the PCIe link power states between the AMD root port and the
+RTL8852BE hang the link once the card starts scanning. `-WifiAspmOff` in
+`Build-EFI.ps1` adds the DeviceProperties; the fork's driver now also clears
+the registers itself.
+
+macOS is installed offline first (see [OFFLINE-INSTALL.md](OFFLINE-INSTALL.md)); Wi-Fi is debugged afterwards in the installed system, where kernel logs can be read.
+
 ## Build the test EFIs
 
 ```powershell

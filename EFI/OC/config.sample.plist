@@ -165,7 +165,18 @@
 		<key>DeviceProperties</key>
 		<dict>
 			<key>Add</key>
-			<dict></dict>
+			<dict>
+				<key>PciRoot(0x0)/Pci(0x2,0x2)</key>
+				<dict>
+					<key>pci-aspm-default</key>
+					<data>AAAAAA==</data>
+				</dict>
+				<key>PciRoot(0x0)/Pci(0x2,0x2)/Pci(0x0,0x0)</key>
+				<dict>
+					<key>pci-aspm-default</key>
+					<data>AAAAAA==</data>
+				</dict>
+			</dict>
 			<key>Delete</key>
 			<dict />
 		</dict>
@@ -271,7 +282,7 @@
 					<key>Comment</key>
 					<string>AirportRTW</string>
 					<key>Enabled</key>
-					<false />
+					<true />
 					<key>ExecutablePath</key>
 					<string>Contents/MacOS/AirportRTW</string>
 					<key>MaxKernel</key>
@@ -1596,7 +1607,7 @@
 					<key>SystemAudioVolume</key>
 					<data>Rg==</data>
 					<key>boot-args</key>
-					<string>-v keepsyms=1 debug=0x100 alcid=11 ipc_control_port_options=0</string>
+					<string>-v keepsyms=1 debug=0x100 alcid=11 ipc_control_port_options=0 -amfipassbeta amfi=0x80 itlwm_cc=DE -rtwpoll</string>
 					<key>csr-active-config</key>
 					<data>AAAAAA==</data>
 					<key>prev-lang:kbd</key>
